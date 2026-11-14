@@ -1,0 +1,5081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Block Blast — 2.5D Studio Edition</title>
+<style>
+  :root {
+    --bg-primary: #080a10;
+    --bg-secondary: #101420;
+    --panel-bg: rgba(14, 18, 28, 0.84);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-gold: #fbbf24;
+    --accent-cyan: #38bdf8;
+    --accent-rose: #fb7185;
+    --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: #04060b;
+    color: var(--text-primary);
+    font-family: var(--font-stack);
+    touch-action: none;
+  }
+
+  #app-shell {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 28%, #0f172a 0%, #05070c 68%, #020306 100%);
+  }
+
+  #app {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    height: 100%;
+    height: 100dvh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-primary);
+    box-shadow: 0 0 90px rgba(0, 0, 0, 0.92), 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+
+  /* Top HUD Bar */
+  #hud {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    margin: 0 auto;
+    padding: max(12px, env(safe-area-inset-top)) 26px 8px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .hud-left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .best-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+  }
+
+  .best-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent-gold);
+    flex-shrink: 0;
+  }
+
+  .best-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
+  }
+
+  .best-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .best-value {
+    font-size: 14px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  .hud-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 104px;
+  }
+
+  #score-display {
+    font-size: clamp(30px, 6.4vw, 42px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    text-shadow: 0 2px 18px rgba(56, 189, 248, 0.25);
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  #combo-badge {
+    margin-top: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(244, 63, 94, 0.22));
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    color: #fde68a;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.92);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  #combo-badge.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .hud-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+    position: relative;
+  }
+
+  .icon-btn:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(28, 36, 54, 0.92);
+  }
+
+  .icon-btn:active {
+    transform: scale(0.92);
+  }
+
+  .icon-btn.hidden {
+    display: none;
+  }
+
+  .icon-btn:disabled {
+    opacity: 0.36;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .undo-count {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--accent-cyan);
+    color: #090d16;
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Main Interactive Canvas Stage */
+  #stage-wrap {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  /* Toast notification for subtle non-blocking feedback */
+  #toast {
+    position: fixed;
+    top: 76px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    z-index: 40;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #e0f2fe;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Game Over Modal Overlay */
+  #gameover-modal {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(5, 7, 13, 0.78);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.32s ease;
+  }
+
+  #gameover-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 340px;
+    padding: 26px 22px 22px;
+    border-radius: 24px;
+    background: linear-gradient(165deg, rgba(22, 28, 44, 0.96), rgba(11, 14, 24, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    text-align: center;
+    transform: translateY(16px) scale(0.95);
+    transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #gameover-modal.open .modal-card {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-rose);
+    margin-bottom: 6px;
+  }
+
+  .modal-title {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+
+  .record-ribbon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.24), rgba(245, 158, 11, 0.14));
+    border: 1px solid rgba(251, 191, 36, 0.52);
+    color: #fde68a;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .record-ribbon.hidden {
+    display: none;
+  }
+
+  .final-score-box {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(8, 10, 17, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 14px;
+  }
+
+  .final-score-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .final-score-num {
+    font-size: 40px;
+    font-weight: 900;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #ffffff, #bae6fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .stat-cell {
+    padding: 10px 6px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .stat-val {
+    font-size: 16px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 3px;
+  }
+
+  .primary-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, #38bdf8, #3b82f6);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 10px 26px rgba(59, 130, 246, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+
+  .primary-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  .primary-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* Settings & Tweaks Frosted Glass Drawer */
+  #settings-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(4, 6, 12, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  #settings-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #settings-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(390px, 92%);
+    background: rgba(14, 18, 29, 0.96);
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.65);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #settings-backdrop.open #settings-drawer {
+    transform: translateX(0);
+  }
+
+  .drawer-header {
+    padding: max(18px, env(safe-area-inset-top)) 20px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .drawer-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px max(28px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    touch-action: pan-y;
+  }
+
+  .drawer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .section-heading {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+  }
+
+  .control-card {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .control-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .control-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .control-val {
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-cyan);
+  }
+
+  /* Segmented Pills */
+  .seg-group {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: rgba(6, 9, 16, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .seg-btn {
+    padding: 7px 6px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease;
+  }
+
+  .seg-btn.active {
+    background: rgba(56, 189, 248, 0.22);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.45);
+  }
+
+  /* Theme Swatch Selector */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .theme-btn {
+    padding: 9px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(8, 11, 19, 0.65);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+  }
+
+  .theme-btn.active {
+    border-color: var(--accent-cyan);
+    background: rgba(56, 189, 248, 0.14);
+    color: #ffffff;
+  }
+
+  .theme-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  /* Range Sliders */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #38bdf8;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #38bdf8;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+  }
+
+  /* Toggle Switch */
+  .switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider-toggle {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .slider-toggle::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .switch input:checked + .slider-toggle {
+    background: #38bdf8;
+  }
+
+  .switch input:checked + .slider-toggle::before {
+    transform: translateX(20px);
+  }
+
+  .reset-settings-btn {
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    background: rgba(244, 63, 94, 0.12);
+    color: #fda4af;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s ease;
+  }
+
+  .reset-settings-btn:hover {
+    background: rgba(244, 63, 94, 0.22);
+  }
+</style>
+</head>
+<body>
+<div id="app-shell">
+<div id="app">
+  <!-- Top HUD -->
+  <header id="hud">
+    <div class="hud-left">
+      <div class="best-pill" title="Best Score">
+        <svg class="best-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+        </svg>
+        <div class="best-meta">
+          <span class="best-label" id="best-mode-label">BEST</span>
+          <span class="best-value" id="best-score-display">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-center">
+      <div id="score-display">0</div>
+      <div id="combo-badge">COMBO x1</div>
+    </div>
+
+    <div class="hud-right">
+      <button type="button" class="icon-btn hidden" id="btn-undo" title="Undo Last Move" aria-label="Undo Last Move">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7v6h6"/>
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+        </svg>
+        <span class="undo-count" id="undo-badge">1</span>
+      </button>
+
+      <button type="button" class="icon-btn" id="btn-restart" title="New Game" aria-label="New Game">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
+          <path d="M21 3v5h-5"/>
+        </svg>
+      </button>
+
+      <button type="button" class="icon-btn" id="btn-settings" title="Settings & Tweaks" aria-label="Settings & Tweaks">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Interactive Canvas Stage -->
+  <main id="stage-wrap">
+    <canvas id="game-canvas"></canvas>
+  </main>
+
+  <!-- Subtle Floating Notification -->
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Game Over Modal -->
+  <div id="gameover-modal" role="dialog" aria-modal="true" aria-labelledby="go-title">
+    <div class="modal-card">
+      <div class="modal-eyebrow">Out of Moves</div>
+      <h2 class="modal-title" id="go-title">Game Over</h2>
+      <div class="record-ribbon hidden" id="go-new-record">New Best Score!</div>
+      <div class="final-score-box">
+        <div class="final-score-label">Final Score</div>
+        <div class="final-score-num" id="go-final-score">0</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-cell">
+          <div class="stat-val" id="go-best-score">0</div>
+          <div class="stat-lbl">Best</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" id="go-lines-cleared">0</div>
+          <div class="stat-lbl">Lines</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" id="go-max-streak">0x</div>
+          <div class="stat-lbl">Max Combo</div>
+        </div>
+      </div>
+      <button type="button" class="primary-btn" id="btn-play-again">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Settings & Tweaks Drawer -->
+  <div id="settings-backdrop">
+    <aside id="settings-drawer" role="dialog" aria-modal="true" aria-label="Settings and Tweaks">
+      <div class="drawer-header">
+        <h2 class="drawer-title">Settings &amp; Tweaks</h2>
+        <button type="button" class="icon-btn" id="btn-close-settings" aria-label="Close Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Section 1: Visual & Lighting Studio -->
+        <div class="drawer-section">
+          <div class="section-heading">Visual &amp; Lighting Studio</div>
+
+          <!-- Theme Palette -->
+          <div class="control-card">
+            <div class="control-label">Studio Lighting Theme</div>
+            <div class="theme-grid" id="theme-grid">
+              <button type="button" class="theme-btn active" data-theme="obsidian">
+                <span class="theme-swatch" style="background: linear-gradient(135deg, #0d111a, #38bdf8);"></span>
+                <span>Obsidian Studio</span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="cobalt">
+                <span class="theme-swatch" style="background: linear-gradient(135deg, #102048, #3b82f6);"></span>
+                <span>Royal Cobalt</span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="emerald">
+                <span class="theme-swatch" style="background: linear-gradient(135deg, #0c2420, #10b981);"></span>
+                <span>Midnight Emerald</span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="ceramic">
+                <span class="theme-swatch" style="background: linear-gradient(135deg, #27272a, #e4e4e7);"></span>
+                <span>Nordic Ceramic</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Mutual Block Lighting & Bloom -->
+          <div class="control-card">
+            <div class="control-label">Mutual Block Lighting &amp; Bloom</div>
+            <div class="seg-group" id="lighting-level-group">
+              <button type="button" class="seg-btn" data-val="off">Off</button>
+              <button type="button" class="seg-btn" data-val="subtle">Subtle</button>
+              <button type="button" class="seg-btn active" data-val="studio">Studio</button>
+              <button type="button" class="seg-btn" data-val="hyper">Hyper</button>
+            </div>
+          </div>
+
+          <!-- Glow Duration -->
+          <div class="control-card">
+            <div class="control-row">
+              <div>
+                <div class="control-label">Placement &amp; Clear Glow Duration</div>
+                <div class="control-sub">Luminous afterglow decay window</div>
+              </div>
+              <span class="control-val" id="val-glow-duration">1.7s</span>
+            </div>
+            <input type="range" id="slider-glow-duration" min="0.5" max="3.0" step="0.1" value="1.7" />
+          </div>
+
+          <!-- Juice & Shatter Intensity -->
+          <div class="control-card">
+            <div class="control-label">Juice &amp; Shatter Intensity</div>
+            <div class="seg-group" id="juice-level-group">
+              <button type="button" class="seg-btn" data-val="clean">Clean</button>
+              <button type="button" class="seg-btn active" data-val="satisfying">Satisfying</button>
+              <button type="button" class="seg-btn" data-val="overdrive">Overdrive</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Controls & Comfort -->
+        <div class="drawer-section">
+          <div class="section-heading">Controls &amp; Comfort</div>
+
+          <!-- Drag Lift Offset -->
+          <div class="control-card">
+            <div class="control-row">
+              <div>
+                <div class="control-label">Drag Lift Offset</div>
+                <div class="control-sub">Elevates piece above finger on touch</div>
+              </div>
+              <span class="control-val" id="val-drag-offset">Auto</span>
+            </div>
+            <div class="control-row">
+              <input type="range" id="slider-drag-offset" min="0" max="120" step="5" value="70" />
+              <button type="button" class="seg-btn active" id="btn-drag-auto" style="padding: 6px 10px; border-radius: 8px; flex-shrink: 0;">Auto</button>
+            </div>
+          </div>
+
+          <!-- Pre-Clear Highlight -->
+          <div class="control-card">
+            <div class="control-row">
+              <div>
+                <div class="control-label">Pre-Clear Line Highlight</div>
+                <div class="control-sub">Illuminate rows/cols ready to clear</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-preclear" checked />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Alignment Guides -->
+          <div class="control-card">
+            <div class="control-row">
+              <div>
+                <div class="control-label">Alignment Guides</div>
+                <div class="control-sub">Subtle laser grid rails while dragging</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-guides" />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Audio & Haptics -->
+        <div class="drawer-section">
+          <div class="section-heading">Audio &amp; Haptics</div>
+
+          <div class="control-card">
+            <div class="control-row">
+              <div class="control-label">Master Volume</div>
+              <span class="control-val" id="val-volume">75%</span>
+            </div>
+            <input type="range" id="slider-volume" min="0" max="100" step="1" value="75" />
+
+            <div class="control-row" style="margin-top: 4px;">
+              <div class="control-label">Mute Audio</div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-mute" />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+
+            <div class="control-row">
+              <div>
+                <div class="control-label">Combo Pitch Escalation</div>
+                <div class="control-sub">Musical scale rises with combo streak</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-pitch" checked />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+
+            <div class="control-row">
+              <div>
+                <div class="control-label">Haptics</div>
+                <div class="control-sub">Tactile vibration feedback on mobile</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-haptics" checked />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Gameplay Tweaks -->
+        <div class="drawer-section">
+          <div class="section-heading">Gameplay Tweaks (Custom Best Tracked)</div>
+
+          <div class="control-card">
+            <div class="control-row">
+              <div>
+                <div class="control-label">Fair Deal Assist</div>
+                <div class="control-sub">Guarantees at least 1 playable piece per deal</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-fair-deal" checked />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+
+            <div class="control-row" style="margin-top: 4px;">
+              <div>
+                <div class="control-label">Board Size</div>
+                <div class="control-sub">Classic 8x8 or Extended 10x10</div>
+              </div>
+              <div class="seg-group" id="board-size-group" style="width: 130px;">
+                <button type="button" class="seg-btn active" data-val="8">8x8</button>
+                <button type="button" class="seg-btn" data-val="10">10x10</button>
+              </div>
+            </div>
+
+            <div class="control-row" style="margin-top: 4px;">
+              <div>
+                <div class="control-label">Tap-to-Rotate Tray Piece</div>
+                <div class="control-sub">Tap a tray piece to rotate 90° clockwise</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="toggle-rotate" />
+                <span class="slider-toggle"></span>
+              </label>
+            </div>
+
+            <div style="margin-top: 4px;">
+              <div class="control-label" style="margin-bottom: 6px;">Undo Last Move</div>
+              <div class="seg-group" id="undo-mode-group">
+                <button type="button" class="seg-btn active" data-val="off">Off</button>
+                <button type="button" class="seg-btn" data-val="once">1 Per Game</button>
+                <button type="button" class="seg-btn" data-val="unlimited">Unlimited</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="reset-settings-btn" id="btn-reset-defaults">Reset All Settings to Classic Defaults</button>
+      </div>
+    </aside>
+  </div>
+</div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ============================================================================
+     1. CENTRALIZED CONFIG MANIFEST
+     ============================================================================ */
+  const CONFIG = {
+    STORAGE_KEYS: {
+      SETTINGS: 'blockblast_studio_settings_v2',
+      BEST_CLASSIC: 'blockblast_studio_best_classic_v2',
+      BEST_CUSTOM: 'blockblast_studio_best_custom_v2',
+      GAME_STATE: 'blockblast_studio_gamestate_v2'
+    },
+
+    DEFAULT_GRID_SIZE: 8,
+    EXTENDED_GRID_SIZE: 10,
+    TRAY_COUNT: 3,
+    TRAY_SCALE: 0.56,
+    SNAP_TOLERANCE_CELLS: 0.55,
+    NO_MOVES_BEAT_DURATION: 1.15,
+    HIT_STOP_DURATION: 0.035,
+    WAVE_STAGGER_PER_CELL: 0.020,
+    CLEAR_SURGE_DURATION: 0.19,
+    DEFAULT_GLOW_DURATION: 1.7,
+    PLACE_TO_GLOW_RATIO: 1.6 / 1.7,
+    CHANNEL_TO_GLOW_RATIO: 1.8 / 1.7,
+
+    // 2.5D Extrusion & Perspective Constants
+    PERSPECTIVE: {
+      BLOCK_Z_DEPTH_RATIO: 0.25,
+      DRAG_Z_LIFT: 26,
+      TRAY_Z_DEPTH_RATIO: 0.22,
+      PROJ_DX: -0.14,
+      PROJ_DY: -0.36,
+      SHADOW_DX: 0.18,
+      SHADOW_DY: 0.28
+    },
+
+    // Exact Block Blast Scoring & 3-Move Combo Window
+    SCORING: {
+      CELL_CLEAR_POINTS: 10,
+      MULTI_LINE_BONUS: {
+        0: 0,
+        1: 0,
+        2: 20,
+        3: 60,
+        4: 120,
+        5: 200,
+        6: 300
+      },
+      ALL_CLEAR_BONUS: 360,
+      COMBO_GRACE_MOVES: 3
+    },
+
+    // Spring Physics Constants
+    SPRINGS: {
+      PIECE_SCALE_STIFFNESS: 360,
+      PIECE_SCALE_DAMPING: 24,
+      PIECE_RETURN_STIFFNESS: 320,
+      PIECE_RETURN_DAMPING: 25,
+      SCORE_POP_STIFFNESS: 280,
+      SCORE_POP_DAMPING: 18,
+      Z_DROP_STIFFNESS: 560,
+      Z_DROP_DAMPING: 17,
+      JOSTLE_STIFFNESS: 340,
+      JOSTLE_DAMPING: 16
+    },
+
+    // 3D Bevel Normals & Studio Lighting Parameters
+    LIGHTING: {
+      CORNER_RADIUS_RATIO: 0.20,
+      BEVEL_WIDTH_RATIO: 0.15,
+      BEVEL_NORMALS: {
+        top: [0, -0.78, 0.62],
+        left: [-0.78, 0, 0.62],
+        right: [0.78, 0, 0.62],
+        bottom: [0, 0.78, 0.62],
+        center: [0, 0, 1.0]
+      },
+      KEY_LIGHT_RAW: [0.42, -0.68, 0.60],
+      NEIGHBOR_RADIUS: 2.5,
+      NEIGHBOR_FALLOFF_K: 1.25,
+      NEIGHBOR_Z: 0.52,
+      RESTING_RADIANCE: 0.30,
+      PLACE_RADIANCE_MULT: 3.5,
+      LEVEL_SCALES: {
+        off: { mutual: 0.0, bloom: 0.0 },
+        subtle: { mutual: 0.48, bloom: 0.42 },
+        studio: { mutual: 1.0, bloom: 1.0 },
+        hyper: { mutual: 1.68, bloom: 1.55 }
+      }
+    },
+
+    // Particle & Juice Presets
+    JUICE_PRESETS: {
+      clean: {
+        shardsPerTile: 6,
+        embersPerTile: 2,
+        shakeMult: 0.35,
+        tiltMult: 0.4,
+        shockwave: false
+      },
+      satisfying: {
+        shardsPerTile: 6,
+        embersPerTile: 6,
+        shakeMult: 1.0,
+        tiltMult: 1.0,
+        shockwave: true
+      },
+      overdrive: {
+        shardsPerTile: 6,
+        embersPerTile: 12,
+        shakeMult: 1.55,
+        tiltMult: 1.35,
+        shockwave: true
+      }
+    },
+
+    SHARD_GRAVITY: 980,
+    SHARD_DRAG: 0.985,
+
+    // 7 Rich Jewel & Resin Palettes with Distinct Volumetric Material Archetypes
+    JEWEL_COLORS: [
+      {
+        id: 'ruby',
+        name: 'Ruby',
+        material: 'glitter',
+        fused: true,
+        albedo: [224, 24, 58],
+        wallDark: [128, 12, 34],
+        emission: [255, 58, 96],
+        core: [255, 175, 192]
+      },
+      {
+        id: 'amber',
+        name: 'Amber',
+        material: 'goldleaf',
+        fused: true,
+        albedo: [236, 144, 14],
+        wallDark: [148, 76, 6],
+        emission: [255, 192, 42],
+        core: [255, 240, 175]
+      },
+      {
+        id: 'emerald',
+        name: 'Emerald',
+        material: 'circuit',
+        fused: true,
+        albedo: [24, 206, 134],
+        wallDark: [12, 112, 74],
+        emission: [64, 250, 172],
+        core: [195, 255, 226]
+      },
+      {
+        id: 'cyan',
+        name: 'Cyan',
+        material: 'prism_bubbles',
+        fused: true,
+        albedo: [16, 188, 242],
+        wallDark: [10, 98, 146],
+        emission: [56, 232, 255],
+        core: [192, 248, 255]
+      },
+      {
+        id: 'sapphire',
+        name: 'Sapphire',
+        material: 'bubbles',
+        fused: true,
+        albedo: [36, 108, 248],
+        wallDark: [18, 56, 156],
+        emission: [78, 152, 255],
+        core: [188, 222, 255]
+      },
+      {
+        id: 'amethyst',
+        name: 'Amethyst',
+        material: 'framed_cube',
+        fused: false,
+        albedo: [152, 74, 238],
+        wallDark: [84, 34, 154],
+        emission: [198, 118, 255],
+        core: [236, 202, 255]
+      },
+      {
+        id: 'coral',
+        name: 'Coral',
+        material: 'rosegold',
+        fused: true,
+        albedo: [242, 68, 118],
+        wallDark: [142, 28, 66],
+        emission: [255, 116, 158],
+        core: [255, 204, 222]
+      }
+    ],
+
+    // 4 Full Studio Lighting Themes
+    THEMES: {
+      obsidian: {
+        name: 'Obsidian Studio',
+        bgTop: '#080a10',
+        bgBottom: '#101420',
+        ambientGlow: 'rgba(255, 214, 140, 0.08)',
+        boardOuter: '#141824',
+        boardOuterBorder: 'rgba(255, 255, 255, 0.14)',
+        boardInner: '#080a11',
+        slotFill: '#0e111b',
+        slotInnerShadow: 'rgba(0, 0, 0, 0.72)',
+        slotBorder: 'rgba(255, 255, 255, 0.06)',
+        trayBg: 'rgba(13, 17, 27, 0.80)',
+        trayBorder: 'rgba(255, 255, 255, 0.11)',
+        leftLedTop: '#38bdf8',
+        leftLedBottom: '#10b981',
+        rightLedTop: '#fbbf24',
+        rightLedBottom: '#ec4899',
+        godRayColor: [255, 218, 150],
+        tileAmbient: 0.38,
+        tileKeyStrength: 0.78,
+        specularAlpha: 0.65
+      },
+      cobalt: {
+        name: 'Royal Cobalt',
+        bgTop: '#09132b',
+        bgBottom: '#132754',
+        ambientGlow: 'rgba(96, 165, 250, 0.14)',
+        boardOuter: '#162b5c',
+        boardOuterBorder: 'rgba(147, 197, 253, 0.24)',
+        boardInner: '#0a1430',
+        slotFill: '#101f45',
+        slotInnerShadow: 'rgba(4, 10, 28, 0.66)',
+        slotBorder: 'rgba(147, 197, 253, 0.10)',
+        trayBg: 'rgba(16, 32, 72, 0.80)',
+        trayBorder: 'rgba(147, 197, 253, 0.16)',
+        leftLedTop: '#38bdf8',
+        leftLedBottom: '#6366f1',
+        rightLedTop: '#60a5fa',
+        rightLedBottom: '#f43f5e',
+        godRayColor: [186, 224, 255],
+        tileAmbient: 0.42,
+        tileKeyStrength: 0.78,
+        specularAlpha: 0.65
+      },
+      emerald: {
+        name: 'Midnight Emerald',
+        bgTop: '#061210',
+        bgBottom: '#0e2420',
+        ambientGlow: 'rgba(16, 185, 129, 0.10)',
+        boardOuter: '#102924',
+        boardOuterBorder: 'rgba(110, 231, 183, 0.18)',
+        boardInner: '#071411',
+        slotFill: '#0c1e1a',
+        slotInnerShadow: 'rgba(2, 10, 8, 0.68)',
+        slotBorder: 'rgba(110, 231, 183, 0.08)',
+        trayBg: 'rgba(12, 30, 26, 0.80)',
+        trayBorder: 'rgba(110, 231, 183, 0.14)',
+        leftLedTop: '#34d399',
+        leftLedBottom: '#06b6d4',
+        rightLedTop: '#fbbf24',
+        rightLedBottom: '#10b981',
+        godRayColor: [253, 230, 168],
+        tileAmbient: 0.38,
+        tileKeyStrength: 0.76,
+        specularAlpha: 0.62
+      },
+      ceramic: {
+        name: 'Nordic Ceramic',
+        bgTop: '#16161a',
+        bgBottom: '#232329',
+        ambientGlow: 'rgba(250, 204, 21, 0.08)',
+        boardOuter: '#2a2a30',
+        boardOuterBorder: 'rgba(255, 255, 255, 0.18)',
+        boardInner: '#17171b',
+        slotFill: '#202026',
+        slotInnerShadow: 'rgba(0, 0, 0, 0.56)',
+        slotBorder: 'rgba(255, 255, 255, 0.08)',
+        trayBg: 'rgba(34, 34, 40, 0.82)',
+        trayBorder: 'rgba(255, 255, 255, 0.13)',
+        leftLedTop: '#67e8f9',
+        leftLedBottom: '#a7f3d0',
+        rightLedTop: '#fde047',
+        rightLedBottom: '#fda4af',
+        godRayColor: [255, 236, 190],
+        tileAmbient: 0.45,
+        tileKeyStrength: 0.75,
+        specularAlpha: 0.58
+      }
+    },
+
+    // Complete Canonical Block Blast Polyomino Catalog
+    PIECE_CATALOG: [
+      { id: '1x1', matrix: [[1]], weight: 4 },
+      { id: '1x2', matrix: [[1, 1]], weight: 7 },
+      { id: '2x1', matrix: [[1], [1]], weight: 7 },
+      { id: '1x3', matrix: [[1, 1, 1]], weight: 8 },
+      { id: '3x1', matrix: [[1], [1], [1]], weight: 8 },
+      { id: 'L2_tl', matrix: [[1, 1], [1, 0]], weight: 7 },
+      { id: 'L2_tr', matrix: [[1, 1], [0, 1]], weight: 7 },
+      { id: 'L2_bl', matrix: [[1, 0], [1, 1]], weight: 7 },
+      { id: 'L2_br', matrix: [[0, 1], [1, 1]], weight: 7 },
+      { id: '1x4', matrix: [[1, 1, 1, 1]], weight: 6 },
+      { id: '4x1', matrix: [[1], [1], [1], [1]], weight: 6 },
+      { id: '2x2', matrix: [[1, 1], [1, 1]], weight: 10 },
+      { id: 'T_up', matrix: [[0, 1, 0], [1, 1, 1]], weight: 6 },
+      { id: 'T_dn', matrix: [[1, 1, 1], [0, 1, 0]], weight: 6 },
+      { id: 'T_lt', matrix: [[0, 1], [1, 1], [0, 1]], weight: 6 },
+      { id: 'T_rt', matrix: [[1, 0], [1, 1], [1, 0]], weight: 6 },
+      { id: 'L3_1', matrix: [[1, 0], [1, 0], [1, 1]], weight: 6 },
+      { id: 'L3_2', matrix: [[0, 1], [0, 1], [1, 1]], weight: 6 },
+      { id: 'L3_3', matrix: [[1, 1], [1, 0], [1, 0]], weight: 6 },
+      { id: 'L3_4', matrix: [[1, 1], [0, 1], [0, 1]], weight: 6 },
+      { id: 'L3_5', matrix: [[1, 1, 1], [1, 0, 0]], weight: 6 },
+      { id: 'L3_6', matrix: [[1, 1, 1], [0, 0, 1]], weight: 6 },
+      { id: 'L3_7', matrix: [[1, 0, 0], [1, 1, 1]], weight: 6 },
+      { id: 'L3_8', matrix: [[0, 0, 1], [1, 1, 1]], weight: 6 },
+      { id: 'S_h', matrix: [[0, 1, 1], [1, 1, 0]], weight: 4 },
+      { id: 'Z_h', matrix: [[1, 1, 0], [0, 1, 1]], weight: 4 },
+      { id: 'S_v', matrix: [[1, 0], [1, 1], [0, 1]], weight: 4 },
+      { id: 'Z_v', matrix: [[0, 1], [1, 1], [1, 0]], weight: 4 },
+      { id: '1x5', matrix: [[1, 1, 1, 1, 1]], weight: 5 },
+      { id: '5x1', matrix: [[1], [1], [1], [1], [1]], weight: 5 },
+      { id: 'BL_tl', matrix: [[1, 1, 1], [1, 0, 0], [1, 0, 0]], weight: 5 },
+      { id: 'BL_tr', matrix: [[1, 1, 1], [0, 0, 1], [0, 0, 1]], weight: 5 },
+      { id: 'BL_bl', matrix: [[1, 0, 0], [1, 0, 0], [1, 1, 1]], weight: 5 },
+      { id: 'BL_br', matrix: [[0, 0, 1], [0, 0, 1], [1, 1, 1]], weight: 5 },
+      { id: '2x3', matrix: [[1, 1, 1], [1, 1, 1]], weight: 5 },
+      { id: '3x2', matrix: [[1, 1], [1, 1], [1, 1]], weight: 5 },
+      { id: '3x3', matrix: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], weight: 4 },
+      { id: 'D2_1', matrix: [[1, 0], [0, 1]], weight: 2 },
+      { id: 'D2_2', matrix: [[0, 1], [1, 0]], weight: 2 },
+      { id: 'D3_1', matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], weight: 2 },
+      { id: 'D3_2', matrix: [[0, 0, 1], [0, 1, 0], [1, 0, 0]], weight: 2 }
+    ]
+  };
+
+  /* ============================================================================
+     2. DEFAULT SETTINGS & STORAGE UTILITIES
+     ============================================================================ */
+  const DEFAULT_SETTINGS = {
+    theme: 'obsidian',
+    lightingLevel: 'studio',
+    glowDuration: CONFIG.DEFAULT_GLOW_DURATION,
+    juiceLevel: 'satisfying',
+    dragOffsetAuto: true,
+    dragOffsetPx: 70,
+    preClearHighlight: true,
+    alignmentGuides: false,
+    masterVolume: 0.75,
+    muted: false,
+    comboPitchEscalation: true,
+    haptics: true,
+    fairDealAssist: true,
+    boardSize: 8,
+    tapToRotate: false,
+    undoMode: 'off'
+  };
+
+  function loadJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function saveJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (_) {}
+  }
+
+  function isCustomRulesActive(settings) {
+    return (
+      settings.boardSize !== 8 ||
+      settings.tapToRotate === true ||
+      settings.undoMode !== 'off'
+    );
+  }
+
+  /* ============================================================================
+     3. PROCEDURAL WEB AUDIO ENGINE (ZERO EXTERNAL FILES)
+     ============================================================================ */
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.lastSnapKey = '';
+      this.pentatonicRatios = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2, 9 / 4, 5 / 2, 3];
+    }
+
+    unlock() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          this.ctx = new AudioCtx();
+        }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    }
+
+    _getGain(settings, baseGain = 0.25) {
+      if (!this.ctx || settings.muted || settings.masterVolume <= 0.001) return 0;
+      return baseGain * settings.masterVolume;
+    }
+
+    playPickup(settings) {
+      this.unlock();
+      const vol = this._getGain(settings, 0.22);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, t);
+      osc.frequency.exponentialRampToValueAtTime(880, t + 0.055);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.065);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.07);
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+    }
+
+    playHoverTick(settings, key) {
+      if (key === this.lastSnapKey) return;
+      this.lastSnapKey = key;
+      this.unlock();
+      const vol = this._getGain(settings, 0.07);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1180, t);
+      osc.frequency.exponentialRampToValueAtTime(760, t + 0.018);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.022);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.025);
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+    }
+
+    resetSnapKey() {
+      this.lastSnapKey = '';
+    }
+
+    playPlace(settings) {
+      this.unlock();
+      const vol = this._getGain(settings, 0.34);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+
+      // 1. Crisp glass-on-obsidian contact clink (2480Hz + 3720Hz bell transient)
+      [2480, 3720].forEach((freq, idx) => {
+        const clink = this.ctx.createOscillator();
+        const cGain = this.ctx.createGain();
+        clink.type = 'sine';
+        clink.frequency.setValueAtTime(freq, t);
+        clink.frequency.exponentialRampToValueAtTime(freq * 0.94, t + 0.045);
+
+        cGain.gain.setValueAtTime(0.0001, t);
+        cGain.gain.linearRampToValueAtTime(vol * (idx === 0 ? 0.34 : 0.18), t + 0.002);
+        cGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+
+        clink.connect(cGain);
+        cGain.connect(this.ctx.destination);
+        clink.start(t);
+        clink.stop(t + 0.06);
+        clink.onended = () => {
+          clink.disconnect();
+          cGain.disconnect();
+        };
+      });
+
+      // 2. Warm sub-punch (165Hz -> 58Hz triangle, 85ms)
+      const sub = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      sub.type = 'triangle';
+      sub.frequency.setValueAtTime(165, t);
+      sub.frequency.exponentialRampToValueAtTime(58, t + 0.085);
+
+      subGain.gain.setValueAtTime(0.0001, t);
+      subGain.gain.linearRampToValueAtTime(vol, t + 0.006);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.095);
+
+      sub.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      sub.start(t);
+      sub.stop(t + 0.1);
+      sub.onended = () => {
+        sub.disconnect();
+        subGain.disconnect();
+      };
+
+      // 3. High harmonic ignition shimmer (1320Hz -> 1760Hz, 180ms)
+      const shim = this.ctx.createOscillator();
+      const shimGain = this.ctx.createGain();
+      shim.type = 'sine';
+      shim.frequency.setValueAtTime(1320, t + 0.01);
+      shim.frequency.exponentialRampToValueAtTime(1760, t + 0.18);
+
+      shimGain.gain.setValueAtTime(0.0001, t + 0.01);
+      shimGain.gain.linearRampToValueAtTime(vol * 0.24, t + 0.03);
+      shimGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.19);
+
+      shim.connect(shimGain);
+      shimGain.connect(this.ctx.destination);
+      shim.start(t + 0.01);
+      shim.stop(t + 0.2);
+      shim.onended = () => {
+        shim.disconnect();
+        shimGain.disconnect();
+      };
+    }
+
+    playClear(settings, linesCleared, combo) {
+      this.unlock();
+      const vol = this._getGain(settings, 0.28);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+
+      const comboStep = settings.comboPitchEscalation ? Math.max(0, combo - 1) : 0;
+      const rootFreq = 330 * Math.pow(1.06, Math.min(comboStep, 12));
+      const noteCount = Math.min(5, 2 + linesCleared);
+
+      for (let i = 0; i < noteCount; i++) {
+        const ratio = this.pentatonicRatios[(i + comboStep) % this.pentatonicRatios.length];
+        const freq = rootFreq * ratio;
+        const start = t + i * 0.036;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.015, start + 0.34);
+
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(vol * (1 - i * 0.1), start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.4);
+        osc.onended = () => {
+          osc.disconnect();
+          gain.disconnect();
+        };
+      }
+    }
+
+    playAllClear(settings) {
+      this.unlock();
+      const vol = this._getGain(settings, 0.32);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+      const chord = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+
+      chord.forEach((freq, idx) => {
+        const start = t + idx * 0.045;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, start);
+
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(vol * 0.85, start + 0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.65);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.68);
+        osc.onended = () => {
+          osc.disconnect();
+          gain.disconnect();
+        };
+      });
+    }
+
+    playRotate(settings) {
+      this.unlock();
+      const vol = this._getGain(settings, 0.18);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(640, t);
+      osc.frequency.exponentialRampToValueAtTime(960, t + 0.045);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.06);
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+    }
+
+    playGameOver(settings) {
+      this.unlock();
+      const vol = this._getGain(settings, 0.25);
+      if (!vol) return;
+      const t = this.ctx.currentTime;
+      const notes = [392.0, 349.23, 311.13, 261.63];
+
+      notes.forEach((freq, idx) => {
+        const start = t + idx * 0.14;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.96, start + 0.26);
+
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(vol, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.3);
+        osc.onended = () => {
+          osc.disconnect();
+          gain.disconnect();
+        };
+      });
+    }
+  }
+
+  /* ============================================================================
+     4. PRE-BAKED RADIAL GLOW & VOLUMETRIC 3D RESIN MATERIAL TEXTURE CACHE
+     ============================================================================ */
+  class GlowSpriteCache {
+    constructor() {
+      this.sprites = [];
+      this.whiteGoldSprite = null;
+      this.goldCyanSprite = null;
+      this.rainbowCausticSprite = null;
+      this.materialCanvases = [];
+      this.obsidianGrainCanvas = null;
+      this._build();
+    }
+
+    _makeRadialSprite(rgb, size = 96) {
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      const g = c.getContext('2d');
+      const half = size / 2;
+      const grad = g.createRadialGradient(half, half, 0, half, half, half);
+      const [r, gr, b] = rgb;
+      grad.addColorStop(0.0, `rgba(${r}, ${gr}, ${b}, 0.95)`);
+      grad.addColorStop(0.28, `rgba(${r}, ${gr}, ${b}, 0.52)`);
+      grad.addColorStop(0.62, `rgba(${r}, ${gr}, ${b}, 0.16)`);
+      grad.addColorStop(1.0, `rgba(${r}, ${gr}, ${b}, 0.0)`);
+      g.fillStyle = grad;
+      g.fillRect(0, 0, size, size);
+      return c;
+    }
+
+    _makeRainbowCausticSprite(size = 128) {
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      const g = c.getContext('2d');
+      const half = size / 2;
+
+      const bands = [
+        { ox: -14, oy: 6, color: 'rgba(56, 232, 255, 0.32)' },
+        { ox: -4, oy: 12, color: 'rgba(52, 211, 153, 0.30)' },
+        { ox: 8, oy: 10, color: 'rgba(251, 191, 36, 0.32)' },
+        { ox: 15, oy: 2, color: 'rgba(244, 63, 94, 0.28)' }
+      ];
+
+      g.globalCompositeOperation = 'lighter';
+      for (const b of bands) {
+        const grad = g.createRadialGradient(half + b.ox, half + b.oy, 2, half + b.ox, half + b.oy, half * 0.68);
+        grad.addColorStop(0, b.color);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, size, size);
+      }
+      return c;
+    }
+
+    _makeObsidianGrainCanvas(size = 128) {
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      const g = c.getContext('2d');
+      let seed = 1337;
+      const rand = () => {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+      };
+      for (let y = 0; y < size; y += 2) {
+        for (let x = 0; x < size; x += 2) {
+          const v = rand();
+          if (v > 0.55) {
+            g.fillStyle = `rgba(255, 255, 255, ${(v - 0.55) * 0.045})`;
+            g.fillRect(x, y, 2, 2);
+          }
+        }
+      }
+      return c;
+    }
+
+    _makeMaterialTexture(materialType, size = 256) {
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      const g = c.getContext('2d');
+      let seed = 4242 + materialType.length * 97;
+      const rand = () => {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+      };
+
+      if (materialType === 'glitter') {
+        for (let i = 0; i < 145; i++) {
+          const x = rand() * size;
+          const y = rand() * size;
+          const r = 0.6 + rand() * 1.6;
+          const alpha = 0.25 + rand() * 0.75;
+          g.fillStyle = `rgba(255, 225, 235, ${alpha})`;
+          g.beginPath();
+          g.arc(x, y, r, 0, Math.PI * 2);
+          g.fill();
+
+          if (i % 7 === 0) {
+            const arm = 3 + rand() * 4.5;
+            g.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+            g.lineWidth = 0.9;
+            g.beginPath();
+            g.moveTo(x - arm, y);
+            g.lineTo(x + arm, y);
+            g.moveTo(x, y - arm);
+            g.lineTo(x, y + arm);
+            g.stroke();
+          }
+        }
+      } else if (materialType === 'circuit') {
+        g.strokeStyle = 'rgba(210, 255, 238, 0.58)';
+        g.lineWidth = 2.0;
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        const step = 32;
+        for (let gx = 16; gx < size; gx += step) {
+          for (let gy = 16; gy < size; gy += step) {
+            if (rand() > 0.35) {
+              const dir = Math.floor(rand() * 4);
+              const len = step * (0.6 + Math.floor(rand() * 2) * 0.4);
+              const nx = gx + (dir === 0 ? len : dir === 1 ? len * 0.7 : 0);
+              const ny = gy + (dir === 2 ? len : dir === 1 ? len * 0.7 : dir === 3 ? -len * 0.7 : 0);
+              g.beginPath();
+              g.moveTo(gx, gy);
+              g.lineTo(nx, ny);
+              g.stroke();
+
+              g.fillStyle = 'rgba(235, 255, 248, 0.85)';
+              g.beginPath();
+              g.arc(gx, gy, 2.3, 0, Math.PI * 2);
+              g.fill();
+            }
+          }
+        }
+      } else if (materialType === 'bubbles' || materialType === 'prism_bubbles') {
+        const count = materialType === 'bubbles' ? 68 : 82;
+        for (let i = 0; i < count; i++) {
+          const x = rand() * size;
+          const y = rand() * size;
+          const rad = 1.4 + Math.pow(rand(), 1.7) * 4.2;
+
+          g.strokeStyle = 'rgba(4, 24, 68, 0.48)';
+          g.lineWidth = 1.1;
+          g.beginPath();
+          g.arc(x, y, rad, 0, Math.PI * 2);
+          g.stroke();
+
+          g.fillStyle = 'rgba(180, 235, 255, 0.16)';
+          g.beginPath();
+          g.arc(x, y, rad * 0.9, 0, Math.PI * 2);
+          g.fill();
+
+          g.fillStyle = 'rgba(255, 255, 255, 0.88)';
+          g.beginPath();
+          g.arc(x - rad * 0.34, y - rad * 0.34, Math.max(0.7, rad * 0.28), 0, Math.PI * 2);
+          g.fill();
+        }
+      } else if (materialType === 'goldleaf') {
+        for (let i = 0; i < 64; i++) {
+          const x = rand() * size;
+          const y = rand() * size;
+          const s = 2.5 + rand() * 5.2;
+          const ang = rand() * Math.PI * 2;
+          g.save();
+          g.translate(x, y);
+          g.rotate(ang);
+          g.beginPath();
+          g.moveTo(-s * 0.6, -s * 0.3);
+          g.lineTo(s * 0.5, -s * 0.5);
+          g.lineTo(s * 0.7, s * 0.35);
+          g.lineTo(-s * 0.35, s * 0.55);
+          g.closePath();
+          g.fillStyle = rand() > 0.35 ? 'rgba(255, 245, 185, 0.72)' : 'rgba(255, 210, 90, 0.55)';
+          g.fill();
+          g.restore();
+        }
+      } else if (materialType === 'rosegold') {
+        for (let i = 0; i < 95; i++) {
+          const x = rand() * size;
+          const y = rand() * size;
+          const s = 1.4 + rand() * 3.0;
+          g.fillStyle = rand() > 0.4 ? 'rgba(255, 228, 214, 0.68)' : 'rgba(255, 185, 210, 0.52)';
+          g.beginPath();
+          g.ellipse(x, y, s, s * 0.6, rand() * Math.PI, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      return c;
+    }
+
+    _build() {
+      this.sprites = CONFIG.JEWEL_COLORS.map((col) => this._makeRadialSprite(col.emission, 96));
+      this.whiteGoldSprite = this._makeRadialSprite([255, 245, 200], 96);
+      this.goldCyanSprite = this._makeRadialSprite([255, 215, 90], 96);
+      this.rainbowCausticSprite = this._makeRainbowCausticSprite(128);
+      this.materialCanvases = CONFIG.JEWEL_COLORS.map((col) =>
+        this._makeMaterialTexture(col.material, 256)
+      );
+      this.obsidianGrainCanvas = this._makeObsidianGrainCanvas(128);
+    }
+  }
+
+  /* ============================================================================
+     5. FUSED POLYOMINO BOUNDARY LOOP TRACER (SEAMLESS 3D SILHOUETTES)
+     ============================================================================ */
+  function traceFusedBoundaryLoops(cells) {
+    const cellSet = new Set();
+    for (let i = 0; i < cells.length; i++) {
+      cellSet.add(`${cells[i].r},${cells[i].c}`);
+    }
+
+    const outEdges = new Map();
+    const addEdge = (x0, y0, x1, y1) => {
+      const key = `${x0},${y0}`;
+      if (!outEdges.has(key)) outEdges.set(key, []);
+      outEdges.get(key).push({ x0, y0, x1, y1, dx: x1 - x0, dy: y1 - y0, used: false });
+    };
+
+    for (let i = 0; i < cells.length; i++) {
+      const { r, c } = cells[i];
+      if (!cellSet.has(`${r - 1},${c}`)) addEdge(c, r, c + 1, r);
+      if (!cellSet.has(`${r},${c + 1}`)) addEdge(c + 1, r, c + 1, r + 1);
+      if (!cellSet.has(`${r + 1},${c}`)) addEdge(c + 1, r + 1, c, r + 1);
+      if (!cellSet.has(`${r},${c - 1}`)) addEdge(c, r + 1, c, r);
+    }
+
+    const loops = [];
+    for (const [, edges] of outEdges.entries()) {
+      for (let i = 0; i < edges.length; i++) {
+        const startEdge = edges[i];
+        if (startEdge.used) continue;
+
+        const rawPts = [];
+        let curr = startEdge;
+        let guard = 0;
+
+        while (curr && !curr.used && guard < 512) {
+          curr.used = true;
+          rawPts.push({ x: curr.x0, y: curr.y0 });
+          const nextKey = `${curr.x1},${curr.y1}`;
+          const candidates = outEdges.get(nextKey) || [];
+          let chosen = null;
+
+          if (candidates.length === 1 && !candidates[0].used) {
+            chosen = candidates[0];
+          } else if (candidates.length > 1) {
+            for (let k = 0; k < candidates.length; k++) {
+              const cand = candidates[k];
+              if (cand.used) continue;
+              const cross = curr.dx * cand.dy - curr.dy * cand.dx;
+              if (cross < 0) {
+                chosen = cand;
+                break;
+              }
+            }
+            if (!chosen) {
+              chosen = candidates.find((cnd) => !cnd.used) || null;
+            }
+          }
+          curr = chosen;
+          guard++;
+        }
+
+        if (rawPts.length >= 3) {
+          const simplified = [];
+          const len = rawPts.length;
+          for (let k = 0; k < len; k++) {
+            const prev = rawPts[(k - 1 + len) % len];
+            const pt = rawPts[k];
+            const next = rawPts[(k + 1) % len];
+            const dx1 = pt.x - prev.x;
+            const dy1 = pt.y - prev.y;
+            const dx2 = next.x - pt.x;
+            const dy2 = next.y - pt.y;
+            if (dx1 * dy2 - dy1 * dx2 !== 0) {
+              simplified.push(pt);
+            }
+          }
+          if (simplified.length >= 3) {
+            loops.push(simplified);
+          }
+        }
+      }
+    }
+
+    return loops;
+  }
+
+  /* ============================================================================
+     6. MAIN BLOCK BLAST 2.5D STUDIO ENGINE
+     ============================================================================ */
+  class BlockBlastGame {
+    constructor() {
+      this.canvas = document.getElementById('game-canvas');
+      this.ctx = this.canvas.getContext('2d', { alpha: true });
+
+      this.lightCanvas = document.createElement('canvas');
+      this.lightCtx = this.lightCanvas.getContext('2d');
+
+      this.sound = new SoundEngine();
+      this.glowCache = new GlowSpriteCache();
+
+      const savedSettings = loadJSON(CONFIG.STORAGE_KEYS.SETTINGS, {});
+      this.settings = { ...DEFAULT_SETTINGS, ...savedSettings };
+      this.bestScoreClassic = Number(loadJSON(CONFIG.STORAGE_KEYS.BEST_CLASSIC, 0)) || 0;
+      this.bestScoreCustom = Number(loadJSON(CONFIG.STORAGE_KEYS.BEST_CUSTOM, 0)) || 0;
+
+      this.totalCatalogWeight = CONFIG.PIECE_CATALOG.reduce((acc, p) => acc + p.weight, 0);
+
+      this.viewW = 0;
+      this.viewH = 0;
+      this.dpr = 1;
+      this.layout = {
+        railW: 22,
+        boardX: 0,
+        boardY: 0,
+        boardSize: 320,
+        innerX: 0,
+        innerY: 0,
+        innerSize: 300,
+        cellSize: 36,
+        cellGap: 3,
+        trayX: 0,
+        trayY: 0,
+        trayW: 320,
+        trayH: 110,
+        slotCenters: []
+      };
+
+      this.state = 'PLAYING';
+      this.settingsOpen = false;
+      this.noMovesTimer = 0;
+      this.hitStopTimer = 0;
+      this.elapsedTime = 0;
+      this.nextGroupId = 1;
+
+      this.gridSize = this.settings.boardSize;
+      this.board = [];
+      this.channelAfterglow = [];
+      this.tray = [null, null, null];
+      this.score = 0;
+      this.displayedScore = 0;
+      this.scorePopScale = 1.0;
+      this.scorePopVel = 0;
+      this.combo = 0;
+      this.movesSinceLastClear = 0;
+      this.linesClearedTotal = 0;
+      this.maxStreak = 0;
+      this.undoStack = null;
+      this.undosRemaining = 0;
+      this.isNewRecord = false;
+
+      this.drag = {
+        active: false,
+        pointerId: null,
+        slotIndex: -1,
+        startX: 0,
+        startY: 0,
+        currX: 0,
+        currY: 0,
+        pointerType: 'mouse',
+        movedDistance: 0,
+        scale: CONFIG.TRAY_SCALE,
+        scaleVel: 0,
+        zLift: 0,
+        offsetY: 0,
+        tiltAngle: 0,
+        snapValid: false,
+        snapRow: -1,
+        snapCol: -1,
+        previewRows: [],
+        previewCols: []
+      };
+
+      this.surgingTiles = [];
+      this.shards = [];
+      this.embers = [];
+      this.ribbons = [];
+      this.shockwaves = [];
+      this.rimFlashes = [];
+      this.callouts = [];
+      this.godRayMotes = this._initGodRayMotes(30);
+      this.trauma = 0;
+
+      this._cacheDOM();
+      this._bindUIEvents();
+      this._bindPointerEvents();
+      this._applyThemeCSS();
+      this._syncSettingsUI();
+
+      this._onResize();
+      window.addEventListener('resize', () => this._onResize());
+
+      if (!this._restoreSavedGame()) {
+        this.newGame(false);
+      } else {
+        this._updateHUD(true);
+        this._evaluatePlayableMoves(true);
+      }
+
+      this.lastFrameTime = performance.now();
+      requestAnimationFrame((now) => this._loop(now));
+    }
+
+    _initGodRayMotes(count) {
+      const motes = [];
+      for (let i = 0; i < count; i++) {
+        motes.push({
+          u: Math.random(),
+          v: Math.random(),
+          size: 0.9 + Math.random() * 1.9,
+          speed: 0.018 + Math.random() * 0.025,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+      return motes;
+    }
+
+    /* --------------------------------------------------------------------------
+       DOM CACHING & UI BINDING
+       -------------------------------------------------------------------------- */
+    _cacheDOM() {
+      this.dom = {
+        scoreDisplay: document.getElementById('score-display'),
+        bestScoreDisplay: document.getElementById('best-score-display'),
+        bestModeLabel: document.getElementById('best-mode-label'),
+        comboBadge: document.getElementById('combo-badge'),
+        btnUndo: document.getElementById('btn-undo'),
+        undoBadge: document.getElementById('undo-badge'),
+        btnRestart: document.getElementById('btn-restart'),
+        btnSettings: document.getElementById('btn-settings'),
+        btnCloseSettings: document.getElementById('btn-close-settings'),
+        settingsBackdrop: document.getElementById('settings-backdrop'),
+        goModal: document.getElementById('gameover-modal'),
+        goNewRecord: document.getElementById('go-new-record'),
+        goFinalScore: document.getElementById('go-final-score'),
+        goBestScore: document.getElementById('go-best-score'),
+        goLinesCleared: document.getElementById('go-lines-cleared'),
+        goMaxStreak: document.getElementById('go-max-streak'),
+        btnPlayAgain: document.getElementById('btn-play-again'),
+        toast: document.getElementById('toast'),
+        themeGrid: document.getElementById('theme-grid'),
+        lightingLevelGroup: document.getElementById('lighting-level-group'),
+        sliderGlowDuration: document.getElementById('slider-glow-duration'),
+        valGlowDuration: document.getElementById('val-glow-duration'),
+        juiceLevelGroup: document.getElementById('juice-level-group'),
+        sliderDragOffset: document.getElementById('slider-drag-offset'),
+        valDragOffset: document.getElementById('val-drag-offset'),
+        btnDragAuto: document.getElementById('btn-drag-auto'),
+        togglePreclear: document.getElementById('toggle-preclear'),
+        toggleGuides: document.getElementById('toggle-guides'),
+        sliderVolume: document.getElementById('slider-volume'),
+        valVolume: document.getElementById('val-volume'),
+        toggleMute: document.getElementById('toggle-mute'),
+        togglePitch: document.getElementById('toggle-pitch'),
+        toggleHaptics: document.getElementById('toggle-haptics'),
+        toggleFairDeal: document.getElementById('toggle-fair-deal'),
+        boardSizeGroup: document.getElementById('board-size-group'),
+        toggleRotate: document.getElementById('toggle-rotate'),
+        undoModeGroup: document.getElementById('undo-mode-group'),
+        btnResetDefaults: document.getElementById('btn-reset-defaults')
+      };
+    }
+
+    _bindUIEvents() {
+      this.dom.btnSettings.addEventListener('click', () => this._openSettings());
+      this.dom.btnCloseSettings.addEventListener('click', () => this._closeSettings());
+      this.dom.settingsBackdrop.addEventListener('click', (e) => {
+        if (e.target === this.dom.settingsBackdrop) this._closeSettings();
+      });
+
+      this.dom.btnRestart.addEventListener('click', () => {
+        this.newGame(true);
+        this._showToast('New Game Started');
+      });
+
+      this.dom.btnPlayAgain.addEventListener('click', () => {
+        this.dom.goModal.classList.remove('open');
+        this.newGame(true);
+      });
+
+      this.dom.btnUndo.addEventListener('click', () => this._performUndo());
+
+      this.dom.themeGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.theme-btn');
+        if (!btn) return;
+        this.settings.theme = btn.dataset.theme;
+        this._applyThemeCSS();
+        this._saveSettingsAndSync();
+      });
+
+      this._bindSegGroup(this.dom.lightingLevelGroup, (val) => {
+        this.settings.lightingLevel = val;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.sliderGlowDuration.addEventListener('input', (e) => {
+        this.settings.glowDuration = parseFloat(e.target.value);
+        this._saveSettingsAndSync();
+      });
+
+      this._bindSegGroup(this.dom.juiceLevelGroup, (val) => {
+        this.settings.juiceLevel = val;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.sliderDragOffset.addEventListener('input', (e) => {
+        this.settings.dragOffsetAuto = false;
+        this.settings.dragOffsetPx = parseInt(e.target.value, 10);
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.btnDragAuto.addEventListener('click', () => {
+        this.settings.dragOffsetAuto = !this.settings.dragOffsetAuto;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.togglePreclear.addEventListener('change', (e) => {
+        this.settings.preClearHighlight = e.target.checked;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.toggleGuides.addEventListener('change', (e) => {
+        this.settings.alignmentGuides = e.target.checked;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.sliderVolume.addEventListener('input', (e) => {
+        this.settings.masterVolume = parseInt(e.target.value, 10) / 100;
+        if (this.settings.masterVolume > 0 && this.settings.muted) {
+          this.settings.muted = false;
+        }
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.toggleMute.addEventListener('change', (e) => {
+        this.settings.muted = e.target.checked;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.togglePitch.addEventListener('change', (e) => {
+        this.settings.comboPitchEscalation = e.target.checked;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.toggleHaptics.addEventListener('change', (e) => {
+        this.settings.haptics = e.target.checked;
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.toggleFairDeal.addEventListener('change', (e) => {
+        this.settings.fairDealAssist = e.target.checked;
+        this._saveSettingsAndSync();
+      });
+
+      this._bindSegGroup(this.dom.boardSizeGroup, (val) => {
+        const nextSize = parseInt(val, 10);
+        if (nextSize === this.settings.boardSize) return;
+        this.settings.boardSize = nextSize;
+        this._saveSettingsAndSync();
+        this.newGame(true);
+        this._showToast(`Board resized to ${nextSize}x${nextSize}`);
+      });
+
+      this.dom.toggleRotate.addEventListener('change', (e) => {
+        this.settings.tapToRotate = e.target.checked;
+        this._saveSettingsAndSync();
+        this._evaluatePlayableMoves(true);
+      });
+
+      this._bindSegGroup(this.dom.undoModeGroup, (val) => {
+        this.settings.undoMode = val;
+        if (val === 'once' && this.undosRemaining <= 0 && this.score === 0) {
+          this.undosRemaining = 1;
+        }
+        this._saveSettingsAndSync();
+      });
+
+      this.dom.btnResetDefaults.addEventListener('click', () => {
+        const prevBoardSize = this.settings.boardSize;
+        this.settings = { ...DEFAULT_SETTINGS };
+        this._applyThemeCSS();
+        this._saveSettingsAndSync();
+        if (prevBoardSize !== this.settings.boardSize) {
+          this.newGame(true);
+        }
+        this._showToast('Settings Reset to Classic Defaults');
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.settingsOpen) {
+          this._closeSettings();
+        } else if ((e.key === 'r' || e.key === 'R') && this.drag.active && this.settings.tapToRotate) {
+          this._rotateTrayPiece(this.drag.slotIndex);
+          this._updateDragSnap();
+        }
+      });
+    }
+
+    _bindSegGroup(container, onSelect) {
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.seg-btn');
+        if (!btn) return;
+        onSelect(btn.dataset.val);
+      });
+    }
+
+    _openSettings() {
+      this.settingsOpen = true;
+      this.dom.settingsBackdrop.classList.add('open');
+      if (this.drag.active) {
+        this.drag.active = false;
+        this.drag.slotIndex = -1;
+        this.drag.snapValid = false;
+      }
+    }
+
+    _closeSettings() {
+      this.settingsOpen = false;
+      this.dom.settingsBackdrop.classList.remove('open');
+    }
+
+    _applyThemeCSS() {
+      const theme = CONFIG.THEMES[this.settings.theme] || CONFIG.THEMES.obsidian;
+      document.documentElement.style.setProperty('--bg-primary', theme.bgTop);
+      document.documentElement.style.setProperty('--bg-secondary', theme.bgBottom);
+    }
+
+    _saveSettingsAndSync() {
+      saveJSON(CONFIG.STORAGE_KEYS.SETTINGS, this.settings);
+      this._syncSettingsUI();
+      this._updateHUD(false);
+    }
+
+    _syncSettingsUI() {
+      const s = this.settings;
+
+      this.dom.themeGrid.querySelectorAll('.theme-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.theme === s.theme);
+      });
+
+      this._syncSegGroup(this.dom.lightingLevelGroup, s.lightingLevel);
+      this._syncSegGroup(this.dom.juiceLevelGroup, s.juiceLevel);
+      this._syncSegGroup(this.dom.boardSizeGroup, String(s.boardSize));
+      this._syncSegGroup(this.dom.undoModeGroup, s.undoMode);
+
+      this.dom.sliderGlowDuration.value = s.glowDuration;
+      this.dom.valGlowDuration.textContent = `${s.glowDuration.toFixed(1)}s`;
+
+      this.dom.sliderDragOffset.value = s.dragOffsetPx;
+      this.dom.valDragOffset.textContent = s.dragOffsetAuto ? 'Auto' : `${s.dragOffsetPx}px`;
+      this.dom.btnDragAuto.classList.toggle('active', s.dragOffsetAuto);
+
+      this.dom.togglePreclear.checked = s.preClearHighlight;
+      this.dom.toggleGuides.checked = s.alignmentGuides;
+
+      this.dom.sliderVolume.value = Math.round(s.masterVolume * 100);
+      this.dom.valVolume.textContent = `${Math.round(s.masterVolume * 100)}%`;
+      this.dom.toggleMute.checked = s.muted;
+      this.dom.togglePitch.checked = s.comboPitchEscalation;
+      this.dom.toggleHaptics.checked = s.haptics;
+
+      this.dom.toggleFairDeal.checked = s.fairDealAssist;
+      this.dom.toggleRotate.checked = s.tapToRotate;
+    }
+
+    _syncSegGroup(container, activeVal) {
+      container.querySelectorAll('.seg-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.val === activeVal);
+      });
+    }
+
+    _showToast(msg) {
+      this.dom.toast.textContent = msg;
+      this.dom.toast.classList.add('show');
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => {
+        this.dom.toast.classList.remove('show');
+      }, 1700);
+    }
+
+    _triggerHaptic(ms = 12) {
+      if (!this.settings.haptics) return;
+      if (navigator && typeof navigator.vibrate === 'function') {
+        try {
+          navigator.vibrate(ms);
+        } catch (_) {}
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       VERTICAL ARCADE RESPONSIVE LAYOUT & CANVAS SIZING
+       -------------------------------------------------------------------------- */
+    _onResize() {
+      const rect = this.canvas.parentElement.getBoundingClientRect();
+      this.viewW = Math.max(280, rect.width);
+      this.viewH = Math.max(380, rect.height);
+      this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      this.canvas.width = Math.round(this.viewW * this.dpr);
+      this.canvas.height = Math.round(this.viewH * this.dpr);
+
+      const N = this.gridSize;
+      const railW = Math.max(16, Math.min(28, Math.floor(this.viewW * 0.052)));
+      const innerPlayW = this.viewW - railW * 2;
+      const sidePad = Math.max(10, Math.floor(innerPlayW * 0.036));
+      const topMargin = Math.max(6, Math.floor(this.viewH * 0.012));
+      const bottomMargin = Math.max(14, Math.floor(this.viewH * 0.024));
+      const gapBetween = Math.max(16, Math.floor(this.viewH * 0.028));
+
+      const maxBoardW = innerPlayW - sidePad * 2;
+      const maxBoardH = this.viewH * 0.64;
+      const boardSize = Math.floor(Math.min(maxBoardW, maxBoardH));
+
+      const trayH = Math.max(
+        98,
+        Math.min(144, Math.floor(this.viewH - boardSize - topMargin - bottomMargin - gapBetween))
+      );
+      const totalStackH = boardSize + gapBetween + trayH;
+      const startY = Math.max(topMargin, Math.floor((this.viewH - totalStackH) * 0.44));
+
+      const boardX = Math.floor((this.viewW - boardSize) * 0.5);
+      const boardY = startY;
+
+      const boardPadding = Math.max(8, Math.floor(boardSize * 0.028));
+      const innerSize = boardSize - boardPadding * 2;
+      const cellGap = Math.max(2, Math.floor(innerSize * 0.007));
+      const cellSize = (innerSize - cellGap * (N - 1)) / N;
+
+      const trayW = boardSize;
+      const trayX = boardX;
+      const trayY = boardY + boardSize + gapBetween;
+
+      this.layout = {
+        railW,
+        boardX,
+        boardY,
+        boardSize,
+        innerX: boardX + boardPadding,
+        innerY: boardY + boardPadding,
+        innerSize,
+        cellSize,
+        cellGap,
+        trayX,
+        trayY,
+        trayW,
+        trayH,
+        slotCenters: [
+          { x: trayX + trayW * (1 / 6), y: trayY + trayH * 0.52 },
+          { x: trayX + trayW * (3 / 6), y: trayY + trayH * 0.52 },
+          { x: trayX + trayW * (5 / 6), y: trayY + trayH * 0.52 }
+        ]
+      };
+
+      this.lightCanvas.width = Math.max(64, Math.round(this.layout.innerSize * 0.5));
+      this.lightCanvas.height = Math.max(64, Math.round(this.layout.innerSize * 0.5));
+
+      for (let i = 0; i < CONFIG.TRAY_COUNT; i++) {
+        const piece = this.tray[i];
+        if (piece && !(this.drag.active && this.drag.slotIndex === i)) {
+          piece.x = this.layout.slotCenters[i].x;
+          piece.y = this.layout.slotCenters[i].y;
+          piece.vx = 0;
+          piece.vy = 0;
+        }
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       GAME INITIALIZATION, STATE PERSISTENCE & UNDO
+       -------------------------------------------------------------------------- */
+    _createEmptyBoard(N) {
+      return Array.from({ length: N }, () => Array(N).fill(null));
+    }
+
+    _createEmptyAfterglow(N) {
+      return Array.from({ length: N }, () =>
+        Array.from({ length: N }, () => ({ intensity: 0, maxDuration: 1.8, colorIndex: 0 }))
+      );
+    }
+
+    newGame(playSound = true) {
+      this.gridSize = this.settings.boardSize;
+      this.board = this._createEmptyBoard(this.gridSize);
+      this.channelAfterglow = this._createEmptyAfterglow(this.gridSize);
+      this.tray = [null, null, null];
+
+      this.score = 0;
+      this.displayedScore = 0;
+      this.scorePopScale = 1.0;
+      this.scorePopVel = 0;
+      this.combo = 0;
+      this.movesSinceLastClear = 0;
+      this.linesClearedTotal = 0;
+      this.maxStreak = 0;
+      this.undoStack = null;
+      this.undosRemaining = this.settings.undoMode === 'once' ? 1 : 0;
+      this.isNewRecord = false;
+      this.state = 'PLAYING';
+      this.noMovesTimer = 0;
+      this.hitStopTimer = 0;
+
+      this.surgingTiles = [];
+      this.shards = [];
+      this.embers = [];
+      this.ribbons = [];
+      this.shockwaves = [];
+      this.rimFlashes = [];
+      this.callouts = [];
+      this.trauma = 0;
+      this.nextGroupId = 1;
+
+      this.drag.active = false;
+      this.drag.slotIndex = -1;
+      this.drag.snapValid = false;
+      this.drag.zLift = 0;
+
+      this.dom.goModal.classList.remove('open');
+
+      this._onResize();
+      this._dealTrayBatch();
+      this._updateHUD(true);
+      this._saveGameState();
+
+      if (playSound) {
+        this.sound.playPickup(this.settings);
+      }
+    }
+
+    _saveGameState() {
+      if (this.state !== 'PLAYING') {
+        try {
+          localStorage.removeItem(CONFIG.STORAGE_KEYS.GAME_STATE);
+        } catch (_) {}
+        return;
+      }
+
+      const serializedBoard = this.board.map((row) =>
+        row.map((cell) => (cell ? { colorIndex: cell.colorIndex, groupId: cell.groupId || 0 } : null))
+      );
+      const serializedTray = this.tray.map((p) =>
+        p
+          ? {
+              id: p.id,
+              matrix: p.matrix,
+              colorIndex: p.colorIndex
+            }
+          : null
+      );
+
+      saveJSON(CONFIG.STORAGE_KEYS.GAME_STATE, {
+        gridSize: this.gridSize,
+        board: serializedBoard,
+        tray: serializedTray,
+        score: this.score,
+        combo: this.combo,
+        movesSinceLastClear: this.movesSinceLastClear,
+        linesClearedTotal: this.linesClearedTotal,
+        maxStreak: this.maxStreak,
+        undosRemaining: this.undosRemaining,
+        nextGroupId: this.nextGroupId
+      });
+    }
+
+    _restoreSavedGame() {
+      const saved = loadJSON(CONFIG.STORAGE_KEYS.GAME_STATE, null);
+      if (!saved || !Array.isArray(saved.board) || saved.board.length !== this.gridSize) {
+        return false;
+      }
+      if (!Array.isArray(saved.tray) || saved.tray.length !== CONFIG.TRAY_COUNT) {
+        return false;
+      }
+
+      this.nextGroupId = Number(saved.nextGroupId) || 1;
+      this.board = saved.board.map((row, rIdx) =>
+        row.map((cell, cIdx) =>
+          cell
+            ? {
+                colorIndex: cell.colorIndex % CONFIG.JEWEL_COLORS.length,
+                groupId: cell.groupId || rIdx * 100 + cIdx + 1,
+                placeGlow: 0,
+                placeMaxDuration: 1.6,
+                zHeight: 0,
+                zVel: 0,
+                impacted: true,
+                jostleX: 0,
+                jostleY: 0,
+                jostleVx: 0,
+                jostleVy: 0,
+                hoverBoost: 0
+              }
+            : null
+        )
+      );
+      this.channelAfterglow = this._createEmptyAfterglow(this.gridSize);
+
+      this.tray = saved.tray.map((p, idx) => {
+        if (!p || !Array.isArray(p.matrix)) return null;
+        return this._instantiateTrayPiece(p.id, p.matrix, p.colorIndex, idx, false);
+      });
+
+      if (this.tray.every((p) => p === null)) {
+        this._dealTrayBatch();
+      }
+
+      this.score = Number(saved.score) || 0;
+      this.displayedScore = this.score;
+      this.combo = Number(saved.combo) || 0;
+      this.movesSinceLastClear = Number(saved.movesSinceLastClear) || 0;
+      this.linesClearedTotal = Number(saved.linesClearedTotal) || 0;
+      this.maxStreak = Number(saved.maxStreak) || 0;
+      this.undosRemaining = Number(saved.undosRemaining) || 0;
+      this.state = 'PLAYING';
+      return true;
+    }
+
+    _pushUndoSnapshot() {
+      if (this.settings.undoMode === 'off') return;
+      this.undoStack = {
+        board: this.board.map((row) =>
+          row.map((cell) => (cell ? { colorIndex: cell.colorIndex, groupId: cell.groupId } : null))
+        ),
+        tray: this.tray.map((p) =>
+          p ? { id: p.id, matrix: p.matrix.map((r) => [...r]), colorIndex: p.colorIndex } : null
+        ),
+        score: this.score,
+        combo: this.combo,
+        movesSinceLastClear: this.movesSinceLastClear,
+        linesClearedTotal: this.linesClearedTotal,
+        maxStreak: this.maxStreak
+      };
+    }
+
+    _performUndo() {
+      if (this.settings.undoMode === 'off') return;
+      if (this.state !== 'PLAYING' && this.state !== 'NO_MOVES_BEAT') return;
+      if (!this.undoStack) {
+        this._showToast('Nothing to Undo');
+        return;
+      }
+      if (this.settings.undoMode === 'once' && this.undosRemaining <= 0) {
+        this._showToast('No Undos Remaining');
+        return;
+      }
+
+      const snap = this.undoStack;
+      this.undoStack = null;
+      if (this.settings.undoMode === 'once') {
+        this.undosRemaining = Math.max(0, this.undosRemaining - 1);
+      }
+
+      this.board = snap.board.map((row) =>
+        row.map((cell) =>
+          cell
+            ? {
+                colorIndex: cell.colorIndex,
+                groupId: cell.groupId,
+                placeGlow: 0,
+                placeMaxDuration: 1.6,
+                zHeight: 0,
+                zVel: 0,
+                impacted: true,
+                jostleX: 0,
+                jostleY: 0,
+                jostleVx: 0,
+                jostleVy: 0,
+                hoverBoost: 0
+              }
+            : null
+        )
+      );
+      this.channelAfterglow = this._createEmptyAfterglow(this.gridSize);
+      this.tray = snap.tray.map((p, idx) =>
+        p ? this._instantiateTrayPiece(p.id, p.matrix, p.colorIndex, idx, true) : null
+      );
+
+      this.score = snap.score;
+      this.displayedScore = snap.score;
+      this.combo = snap.combo;
+      this.movesSinceLastClear = snap.movesSinceLastClear;
+      this.linesClearedTotal = snap.linesClearedTotal;
+      this.maxStreak = snap.maxStreak;
+      this.state = 'PLAYING';
+      this.noMovesTimer = 0;
+
+      this._updateHUD(true);
+      this._saveGameState();
+      this.sound.playRotate(this.settings);
+      this._showToast('Move Undone');
+    }
+
+    /* --------------------------------------------------------------------------
+       PIECE GENERATION, DEALING & ROTATION
+       -------------------------------------------------------------------------- */
+    _weightedRandomTemplate() {
+      let r = Math.random() * this.totalCatalogWeight;
+      for (let i = 0; i < CONFIG.PIECE_CATALOG.length; i++) {
+        r -= CONFIG.PIECE_CATALOG[i].weight;
+        if (r <= 0) return CONFIG.PIECE_CATALOG[i];
+      }
+      return CONFIG.PIECE_CATALOG[0];
+    }
+
+    _buildPieceGeometry(matrix) {
+      const rows = matrix.length;
+      const cols = matrix[0].length;
+      const cells = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (matrix[r][c]) cells.push({ r, c });
+        }
+      }
+      const boundaryLoops = traceFusedBoundaryLoops(cells);
+      return { rows, cols, tileCount: cells.length, cells, boundaryLoops };
+    }
+
+    _instantiateTrayPiece(id, matrix, colorIndex, slotIndex, animateSpawn = true) {
+      const geom = this._buildPieceGeometry(matrix);
+      const center = this.layout.slotCenters[slotIndex] || { x: this.viewW * 0.5, y: this.viewH * 0.8 };
+      return {
+        id,
+        matrix: matrix.map((row) => [...row]),
+        rows: geom.rows,
+        cols: geom.cols,
+        tileCount: geom.tileCount,
+        cells: geom.cells,
+        boundaryLoops: geom.boundaryLoops,
+        colorIndex: colorIndex % CONFIG.JEWEL_COLORS.length,
+        x: center.x,
+        y: center.y,
+        vx: 0,
+        vy: 0,
+        spawnScale: animateSpawn ? 0.1 : 1.0,
+        rotAnimAngle: 0,
+        unplaceablePulse: 0
+      };
+    }
+
+    _dealTrayBatch() {
+      const usedColors = new Set();
+      for (let i = 0; i < CONFIG.TRAY_COUNT; i++) {
+        const tpl = this._weightedRandomTemplate();
+        let colorIdx = Math.floor(Math.random() * CONFIG.JEWEL_COLORS.length);
+        if (usedColors.has(colorIdx)) {
+          colorIdx = (colorIdx + 1 + Math.floor(Math.random() * (CONFIG.JEWEL_COLORS.length - 1))) % CONFIG.JEWEL_COLORS.length;
+        }
+        usedColors.add(colorIdx);
+        this.tray[i] = this._instantiateTrayPiece(tpl.id, tpl.matrix, colorIdx, i, true);
+      }
+
+      if (this.settings.fairDealAssist) {
+        const anyFits = this.tray.some((p) => p && this._canPieceFitAnywhere(p.matrix));
+        if (!anyFits) {
+          const fittingTemplates = CONFIG.PIECE_CATALOG.filter((tpl) => this._canPieceFitAnywhere(tpl.matrix));
+          if (fittingTemplates.length > 0) {
+            const chosen = fittingTemplates[Math.floor(Math.random() * fittingTemplates.length)];
+            const replaceSlot = Math.floor(Math.random() * CONFIG.TRAY_COUNT);
+            const colorIdx = this.tray[replaceSlot] ? this.tray[replaceSlot].colorIndex : 0;
+            this.tray[replaceSlot] = this._instantiateTrayPiece(chosen.id, chosen.matrix, colorIdx, replaceSlot, true);
+          }
+        }
+      }
+
+      this._evaluatePlayableMoves(true);
+    }
+
+    _rotateMatrixCW(matrix) {
+      const R = matrix.length;
+      const C = matrix[0].length;
+      const out = Array.from({ length: C }, () => Array(R).fill(0));
+      for (let r = 0; r < R; r++) {
+        for (let c = 0; c < C; c++) {
+          out[c][R - 1 - r] = matrix[r][c];
+        }
+      }
+      return out;
+    }
+
+    _rotateTrayPiece(slotIndex) {
+      const piece = this.tray[slotIndex];
+      if (!piece || !this.settings.tapToRotate || this.state !== 'PLAYING') return;
+      piece.matrix = this._rotateMatrixCW(piece.matrix);
+      const geom = this._buildPieceGeometry(piece.matrix);
+      piece.rows = geom.rows;
+      piece.cols = geom.cols;
+      piece.cells = geom.cells;
+      piece.boundaryLoops = geom.boundaryLoops;
+      piece.rotAnimAngle = -Math.PI * 0.5;
+      this.sound.playRotate(this.settings);
+      this._triggerHaptic(8);
+      this._saveGameState();
+      this._evaluatePlayableMoves(false);
+    }
+
+    /* --------------------------------------------------------------------------
+       BOARD PLACEMENT VALIDATION, LINE SIMULATION & GAME OVER CHECK
+       -------------------------------------------------------------------------- */
+    _canPlaceAt(matrix, anchorR, anchorC) {
+      const N = this.gridSize;
+      const R = matrix.length;
+      const C = matrix[0].length;
+      if (anchorR < 0 || anchorC < 0 || anchorR + R > N || anchorC + C > N) {
+        return false;
+      }
+      for (let r = 0; r < R; r++) {
+        for (let c = 0; c < C; c++) {
+          if (matrix[r][c] && this.board[anchorR + r][anchorC + c] !== null) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    _canPieceFitAnywhere(matrix) {
+      const N = this.gridSize;
+      const R = matrix.length;
+      const C = matrix[0].length;
+      for (let r = 0; r <= N - R; r++) {
+        for (let c = 0; c <= N - C; c++) {
+          if (this._canPlaceAt(matrix, r, c)) return true;
+        }
+      }
+      return false;
+    }
+
+    _canPieceFitWithOptionalRotation(piece) {
+      if (this._canPieceFitAnywhere(piece.matrix)) return true;
+      if (!this.settings.tapToRotate) return false;
+      let m = piece.matrix;
+      for (let k = 0; k < 3; k++) {
+        m = this._rotateMatrixCW(m);
+        if (this._canPieceFitAnywhere(m)) return true;
+      }
+      return false;
+    }
+
+    _simulateClearedLines(matrix, anchorR, anchorC) {
+      const N = this.gridSize;
+      const R = matrix.length;
+      const C = matrix[0].length;
+      const fullRows = [];
+      const fullCols = [];
+
+      for (let r = 0; r < N; r++) {
+        let complete = true;
+        for (let c = 0; c < N; c++) {
+          const filledByBoard = this.board[r][c] !== null;
+          const filledByPiece =
+            r >= anchorR && r < anchorR + R && c >= anchorC && c < anchorC + C && matrix[r - anchorR][c - anchorC] === 1;
+          if (!filledByBoard && !filledByPiece) {
+            complete = false;
+            break;
+          }
+        }
+        if (complete) fullRows.push(r);
+      }
+
+      for (let c = 0; c < N; c++) {
+        let complete = true;
+        for (let r = 0; r < N; r++) {
+          const filledByBoard = this.board[r][c] !== null;
+          const filledByPiece =
+            r >= anchorR && r < anchorR + R && c >= anchorC && c < anchorC + C && matrix[r - anchorR][c - anchorC] === 1;
+          if (!filledByBoard && !filledByPiece) {
+            complete = false;
+            break;
+          }
+        }
+        if (complete) fullCols.push(c);
+      }
+
+      return { fullRows, fullCols };
+    }
+
+    _evaluatePlayableMoves(triggerBeatIfStuck = true) {
+      if (this.state !== 'PLAYING') return;
+      const remaining = this.tray.filter((p) => p !== null);
+      if (remaining.length === 0) return;
+
+      const anyPlayable = remaining.some((piece) => this._canPieceFitWithOptionalRotation(piece));
+      if (!anyPlayable && triggerBeatIfStuck) {
+        this.state = 'NO_MOVES_BEAT';
+        this.noMovesTimer = CONFIG.NO_MOVES_BEAT_DURATION;
+        this.drag.active = false;
+        this.drag.slotIndex = -1;
+        this.drag.snapValid = false;
+        this.sound.playGameOver(this.settings);
+        this._triggerHaptic(35);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       UN-SHAKEN POINTER INPUT & MAGNETIC GRID SNAPPING
+       -------------------------------------------------------------------------- */
+    _bindPointerEvents() {
+      const canvas = this.canvas;
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (this.settingsOpen) return;
+        this.sound.unlock();
+        if (this.state !== 'PLAYING' || this.drag.active) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+
+        const slotIdx = this._hitTestTraySlot(px, py);
+        if (slotIdx === -1 || !this.tray[slotIdx]) return;
+
+        canvas.setPointerCapture(e.pointerId);
+
+        this.drag.active = true;
+        this.drag.pointerId = e.pointerId;
+        this.drag.slotIndex = slotIdx;
+        this.drag.startX = px;
+        this.drag.startY = py;
+        this.drag.currX = px;
+        this.drag.currY = py;
+        this.drag.pointerType = e.pointerType || 'mouse';
+        this.drag.movedDistance = 0;
+        this.drag.scale = CONFIG.TRAY_SCALE;
+        this.drag.scaleVel = 0;
+        this.drag.zLift = 0;
+        this.drag.offsetY = 0;
+        this.drag.tiltAngle = 0;
+        this.drag.snapValid = false;
+        this.drag.snapRow = -1;
+        this.drag.snapCol = -1;
+        this.drag.previewRows = [];
+        this.drag.previewCols = [];
+
+        this.sound.resetSnapKey();
+        this.sound.playPickup(this.settings);
+        this._triggerHaptic(10);
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        if (!this.drag.active || e.pointerId !== this.drag.pointerId) return;
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+
+        const dx = px - this.drag.currX;
+        this.drag.currX = px;
+        this.drag.currY = py;
+        this.drag.movedDistance = Math.hypot(px - this.drag.startX, py - this.drag.startY);
+
+        const juice = CONFIG.JUICE_PRESETS[this.settings.juiceLevel] || CONFIG.JUICE_PRESETS.satisfying;
+        const targetTilt = Math.max(-0.14, Math.min(0.14, dx * 0.0085 * juice.tiltMult));
+        this.drag.tiltAngle += (targetTilt - this.drag.tiltAngle) * 0.35;
+
+        this._updateDragSnap();
+      });
+
+      const endPointer = (e) => {
+        if (!this.drag.active || e.pointerId !== this.drag.pointerId) return;
+        if (canvas.hasPointerCapture(e.pointerId)) {
+          try {
+            canvas.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+        }
+
+        const slotIdx = this.drag.slotIndex;
+        const wasTap = this.drag.movedDistance < 10;
+
+        if (wasTap && this.settings.tapToRotate) {
+          this.drag.active = false;
+          this.drag.slotIndex = -1;
+          this.drag.snapValid = false;
+          this.drag.zLift = 0;
+          this._rotateTrayPiece(slotIdx);
+          return;
+        }
+
+        if (this.drag.snapValid && this.drag.snapRow >= 0 && this.drag.snapCol >= 0) {
+          this._commitPiecePlacement(slotIdx, this.drag.snapRow, this.drag.snapCol);
+        } else {
+          this.sound.resetSnapKey();
+        }
+
+        this.drag.active = false;
+        this.drag.slotIndex = -1;
+        this.drag.snapValid = false;
+        this.drag.zLift = 0;
+        this.drag.previewRows = [];
+        this.drag.previewCols = [];
+      };
+
+      canvas.addEventListener('pointerup', endPointer);
+      canvas.addEventListener('pointercancel', endPointer);
+    }
+
+    _hitTestTraySlot(px, py) {
+      const { trayX, trayY, trayW, trayH, slotCenters } = this.layout;
+      if (py < trayY - 24 || py > trayY + trayH + 24 || px < trayX - 18 || px > trayX + trayW + 18) {
+        return -1;
+      }
+      let bestIdx = -1;
+      let bestDist = Infinity;
+      for (let i = 0; i < CONFIG.TRAY_COUNT; i++) {
+        if (!this.tray[i]) continue;
+        const c = slotCenters[i];
+        const dist = Math.hypot(px - c.x, py - c.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = i;
+        }
+      }
+      return bestDist <= trayW * 0.25 ? bestIdx : -1;
+    }
+
+    _getDragLiftOffset(pointerType) {
+      if (!this.settings.dragOffsetAuto) {
+        return this.settings.dragOffsetPx;
+      }
+      return pointerType === 'touch' ? Math.min(82, Math.max(54, this.layout.cellSize * 1.65)) : 18;
+    }
+
+    _updateDragSnap() {
+      const piece = this.tray[this.drag.slotIndex];
+      if (!piece) {
+        this.drag.snapValid = false;
+        return;
+      }
+
+      const { innerX, innerY, cellSize, cellGap } = this.layout;
+      const step = cellSize + cellGap;
+
+      const pieceVisualCenterX = this.drag.currX;
+      const pieceVisualCenterY = this.drag.currY - this.drag.offsetY;
+
+      const pieceW = piece.cols * cellSize + (piece.cols - 1) * cellGap;
+      const pieceH = piece.rows * cellSize + (piece.rows - 1) * cellGap;
+      const topLeftX = pieceVisualCenterX - pieceW * 0.5;
+      const topLeftY = pieceVisualCenterY - pieceH * 0.5;
+
+      const rawCol = (topLeftX - innerX) / step;
+      const rawRow = (topLeftY - innerY) / step;
+      const nearestCol = Math.round(rawCol);
+      const nearestRow = Math.round(rawRow);
+
+      const distCells = Math.hypot(rawCol - nearestCol, rawRow - nearestRow);
+
+      if (distCells <= CONFIG.SNAP_TOLERANCE_CELLS && this._canPlaceAt(piece.matrix, nearestRow, nearestCol)) {
+        this.drag.snapValid = true;
+        this.drag.snapRow = nearestRow;
+        this.drag.snapCol = nearestCol;
+
+        const sim = this._simulateClearedLines(piece.matrix, nearestRow, nearestCol);
+        this.drag.previewRows = sim.fullRows;
+        this.drag.previewCols = sim.fullCols;
+
+        this.sound.playHoverTick(this.settings, `${nearestRow},${nearestCol}`);
+      } else {
+        this.drag.snapValid = false;
+        this.drag.snapRow = -1;
+        this.drag.snapCol = -1;
+        this.drag.previewRows = [];
+        this.drag.previewCols = [];
+        this.sound.resetSnapKey();
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       PIECE PLACEMENT, Z-DROP PHYSICS, SIMULTANEOUS CLEARS & SCORING ENGINE
+       -------------------------------------------------------------------------- */
+    _commitPiecePlacement(slotIdx, anchorR, anchorC) {
+      const piece = this.tray[slotIdx];
+      if (!piece) return;
+
+      this._pushUndoSnapshot();
+
+      const N = this.gridSize;
+      const placeDuration = this.settings.glowDuration * CONFIG.PLACE_TO_GLOW_RATIO;
+      const channelDuration = this.settings.glowDuration * CONFIG.CHANNEL_TO_GLOW_RATIO;
+      const groupId = this.nextGroupId++;
+
+      const placedCoords = [];
+      const placedSet = new Set();
+      for (let r = 0; r < piece.rows; r++) {
+        for (let c = 0; c < piece.cols; c++) {
+          if (piece.matrix[r][c]) {
+            const br = anchorR + r;
+            const bc = anchorC + c;
+            this.board[br][bc] = {
+              colorIndex: piece.colorIndex,
+              groupId,
+              placeGlow: 1.0,
+              placeMaxDuration: placeDuration,
+              zHeight: Math.max(14, this.drag.zLift || CONFIG.PERSPECTIVE.DRAG_Z_LIFT),
+              zVel: -160,
+              impacted: false,
+              jostleX: 0,
+              jostleY: 0,
+              jostleVx: 0,
+              jostleVy: 0,
+              hoverBoost: 0
+            };
+            placedCoords.push({ r: br, c: bc });
+            placedSet.add(`${br},${bc}`);
+          }
+        }
+      }
+
+      this.tray[slotIdx] = null;
+
+      // Scan ALL rows and ALL columns simultaneously BEFORE mutating any cells
+      const fullRows = [];
+      const fullCols = [];
+
+      for (let r = 0; r < N; r++) {
+        let full = true;
+        for (let c = 0; c < N; c++) {
+          if (this.board[r][c] === null) {
+            full = false;
+            break;
+          }
+        }
+        if (full) fullRows.push(r);
+      }
+
+      for (let c = 0; c < N; c++) {
+        let full = true;
+        for (let r = 0; r < N; r++) {
+          if (this.board[r][c] === null) {
+            full = false;
+            break;
+          }
+        }
+        if (full) fullCols.push(c);
+      }
+
+      const linesCleared = fullRows.length + fullCols.length;
+      const placedTileCount = piece.tileCount;
+
+      if (linesCleared === 0) {
+        this.movesSinceLastClear += 1;
+        if (this.movesSinceLastClear >= CONFIG.SCORING.COMBO_GRACE_MOVES) {
+          this.combo = 0;
+        }
+        this._addScore(placedTileCount);
+        this.sound.playPlace(this.settings);
+        this._triggerHaptic(14);
+      } else {
+        this.combo += 1;
+        this.movesSinceLastClear = 0;
+        this.linesClearedTotal += linesCleared;
+        if (this.combo > this.maxStreak) {
+          this.maxStreak = this.combo;
+        }
+
+        const uniqueClearMap = new Map();
+        const intersectionCells = [];
+        const rowSet = new Set(fullRows);
+        const colSet = new Set(fullCols);
+
+        for (const r of fullRows) {
+          for (let c = 0; c < N; c++) {
+            uniqueClearMap.set(`${r},${c}`, { r, c });
+          }
+        }
+        for (const c of fullCols) {
+          for (let r = 0; r < N; r++) {
+            const key = `${r},${c}`;
+            if (uniqueClearMap.has(key)) {
+              intersectionCells.push({ r, c });
+            } else {
+              uniqueClearMap.set(key, { r, c });
+            }
+          }
+        }
+
+        const uniqueClearedCells = uniqueClearMap.size;
+
+        let waveOriginR = anchorR + piece.rows * 0.5;
+        let waveOriginC = anchorC + piece.cols * 0.5;
+        if (intersectionCells.length > 0) {
+          waveOriginR = intersectionCells[0].r;
+          waveOriginC = intersectionCells[0].c;
+        }
+
+        for (const { r, c } of uniqueClearMap.values()) {
+          const cell = this.board[r][c];
+          const colorIdx = cell ? cell.colorIndex : piece.colorIndex;
+          const dist = Math.hypot(r - waveOriginR, c - waveOriginC);
+
+          this.surgingTiles.push({
+            r,
+            c,
+            colorIndex: colorIdx,
+            delay: dist * CONFIG.WAVE_STAGGER_PER_CELL,
+            timer: 0,
+            duration: CONFIG.CLEAR_SURGE_DURATION
+          });
+
+          this.channelAfterglow[r][c] = {
+            intensity: 1.0,
+            maxDuration: channelDuration,
+            colorIndex: colorIdx
+          };
+
+          this.board[r][c] = null;
+        }
+
+        for (let r = 0; r < N; r++) {
+          for (let c = 0; c < N; c++) {
+            const survivor = this.board[r][c];
+            if (!survivor) continue;
+            const bordersClearedRow = rowSet.has(r - 1) || rowSet.has(r + 1);
+            const bordersClearedCol = colSet.has(c - 1) || colSet.has(c + 1);
+            if (bordersClearedRow || bordersClearedCol) {
+              survivor.placeGlow = Math.max(survivor.placeGlow, 0.85);
+              survivor.placeMaxDuration = Math.max(survivor.placeMaxDuration, channelDuration);
+            }
+          }
+        }
+
+        let boardEmpty = true;
+        for (let r = 0; r < N && boardEmpty; r++) {
+          for (let c = 0; c < N; c++) {
+            if (this.board[r][c] !== null) {
+              boardEmpty = false;
+              break;
+            }
+          }
+        }
+
+        const multiBonus =
+          CONFIG.SCORING.MULTI_LINE_BONUS[Math.min(6, linesCleared)] ?? linesCleared * 60;
+        const allClearBonus = boardEmpty ? CONFIG.SCORING.ALL_CLEAR_BONUS : 0;
+        const clearPoints = (uniqueClearedCells * CONFIG.SCORING.CELL_CLEAR_POINTS + multiBonus) * this.combo;
+        const totalPoints = placedTileCount + clearPoints + allClearBonus;
+
+        this._addScore(totalPoints);
+
+        const juice = CONFIG.JUICE_PRESETS[this.settings.juiceLevel] || CONFIG.JUICE_PRESETS.satisfying;
+        this.trauma = Math.min(1.0, this.trauma + (0.28 + linesCleared * 0.14) * juice.shakeMult);
+        if (linesCleared >= 2) {
+          this.hitStopTimer = CONFIG.HIT_STOP_DURATION;
+        }
+
+        this._spawnLineClearFX(fullRows, fullCols, intersectionCells, piece.colorIndex, totalPoints, boardEmpty);
+        this.sound.playPlace(this.settings);
+        this.sound.playClear(this.settings, linesCleared, this.combo);
+        if (boardEmpty) {
+          this.sound.playAllClear(this.settings);
+        }
+        this._triggerHaptic(linesCleared >= 2 ? 28 : 18);
+      }
+
+      if (this.tray.every((p) => p === null)) {
+        this._dealTrayBatch();
+      } else {
+        this._evaluatePlayableMoves(true);
+      }
+
+      this._updateHUD(false);
+      this._saveGameState();
+    }
+
+    _addScore(points) {
+      if (points <= 0) return;
+      this.score += points;
+      this.scorePopScale = 1.26;
+      this.scorePopVel = 2.2;
+
+      const custom = isCustomRulesActive(this.settings);
+      if (custom) {
+        if (this.score > this.bestScoreCustom) {
+          this.bestScoreCustom = this.score;
+          this.isNewRecord = true;
+          saveJSON(CONFIG.STORAGE_KEYS.BEST_CUSTOM, this.bestScoreCustom);
+        }
+      } else {
+        if (this.score > this.bestScoreClassic) {
+          this.bestScoreClassic = this.score;
+          this.isNewRecord = true;
+          saveJSON(CONFIG.STORAGE_KEYS.BEST_CLASSIC, this.bestScoreClassic);
+        }
+      }
+    }
+
+    _spawnLineClearFX(fullRows, fullCols, intersectionCells, fallbackColorIdx, pointsAwarded, allClear) {
+      const { innerX, innerY, innerSize, cellSize, cellGap } = this.layout;
+      const step = cellSize + cellGap;
+      const juice = CONFIG.JUICE_PRESETS[this.settings.juiceLevel] || CONFIG.JUICE_PRESETS.satisfying;
+      const ribbonDuration = this.settings.glowDuration * CONFIG.CHANNEL_TO_GLOW_RATIO;
+
+      for (const r of fullRows) {
+        this.ribbons.push({
+          x: innerX,
+          y: innerY + r * step,
+          w: innerSize,
+          h: cellSize,
+          colorIndex: fallbackColorIdx,
+          life: 0,
+          maxLife: ribbonDuration
+        });
+      }
+
+      for (const c of fullCols) {
+        this.ribbons.push({
+          x: innerX + c * step,
+          y: innerY,
+          w: cellSize,
+          h: innerSize,
+          colorIndex: fallbackColorIdx,
+          life: 0,
+          maxLife: ribbonDuration
+        });
+      }
+
+      if (juice.shockwave) {
+        for (const pt of intersectionCells) {
+          this.shockwaves.push({
+            x: innerX + pt.c * step + cellSize * 0.5,
+            y: innerY + pt.r * step + cellSize * 0.5,
+            radius: cellSize * 0.25,
+            maxRadius: innerSize * 0.72,
+            life: 0,
+            maxLife: 0.52,
+            colorIndex: fallbackColorIdx
+          });
+        }
+      }
+
+      let sumX = 0;
+      let sumY = 0;
+      let count = 0;
+      for (const r of fullRows) {
+        sumX += innerX + innerSize * 0.5;
+        sumY += innerY + r * step + cellSize * 0.5;
+        count++;
+      }
+      for (const c of fullCols) {
+        sumX += innerX + c * step + cellSize * 0.5;
+        sumY += innerY + innerSize * 0.5;
+        count++;
+      }
+      const cx = count > 0 ? sumX / count : innerX + innerSize * 0.5;
+      const cy = count > 0 ? sumY / count : innerY + innerSize * 0.5;
+
+      this.callouts.push({
+        text: `+${pointsAwarded}`,
+        x: cx,
+        y: cy,
+        vy: -54,
+        life: 0,
+        maxLife: 1.05,
+        scale: 0.6,
+        color: '#ffffff'
+      });
+
+      const lines = fullRows.length + fullCols.length;
+      if (allClear) {
+        this.callouts.push({
+          text: 'ALL CLEAR! +360',
+          x: innerX + innerSize * 0.5,
+          y: cy - 30,
+          vy: -42,
+          life: 0,
+          maxLife: 1.35,
+          scale: 0.5,
+          color: '#fde047'
+        });
+      } else if (this.combo >= 2 || lines >= 2) {
+        const label =
+          lines >= 3
+            ? `${lines}x MEGA CLEAR!`
+            : this.combo >= 2
+              ? `COMBO x${this.combo}`
+              : 'DOUBLE CLEAR!';
+        this.callouts.push({
+          text: label,
+          x: innerX + innerSize * 0.5,
+          y: cy - 28,
+          vy: -44,
+          life: 0,
+          maxLife: 1.15,
+          scale: 0.55,
+          color: '#7dd3fc'
+        });
+      }
+    }
+
+    _spawnTileShatter(r, c, colorIndex) {
+      const { innerX, innerY, cellSize, cellGap } = this.layout;
+      const step = cellSize + cellGap;
+      const cx = innerX + c * step + cellSize * 0.5;
+      const cy = innerY + r * step + cellSize * 0.5;
+      const juice = CONFIG.JUICE_PRESETS[this.settings.juiceLevel] || CONFIG.JUICE_PRESETS.satisfying;
+
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6 + (Math.random() - 0.5) * 0.45;
+        const speed = 130 + Math.random() * 210;
+        const size = cellSize * (0.18 + Math.random() * 0.14);
+        this.shards.push({
+          x: cx + Math.cos(angle) * (cellSize * 0.16),
+          y: cy + Math.sin(angle) * (cellSize * 0.16),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 135,
+          rot: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 16,
+          size,
+          colorIndex,
+          life: 0,
+          maxLife: 0.48 + Math.random() * 0.24
+        });
+      }
+
+      for (let i = 0; i < juice.embersPerTile; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 70 + Math.random() * 190;
+        this.embers.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 65,
+          size: 1.6 + Math.random() * 2.2,
+          colorIndex,
+          life: 0,
+          maxLife: 0.36 + Math.random() * 0.32
+        });
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       HUD & GAME OVER MODAL UPDATES
+       -------------------------------------------------------------------------- */
+    _updateHUD(instantScore = false) {
+      if (instantScore) {
+        this.displayedScore = this.score;
+      }
+      this.dom.scoreDisplay.textContent = Math.round(this.displayedScore).toLocaleString();
+
+      const custom = isCustomRulesActive(this.settings);
+      this.dom.bestModeLabel.textContent = custom ? 'CUSTOM BEST' : 'BEST';
+      const activeBest = custom ? this.bestScoreCustom : this.bestScoreClassic;
+      this.dom.bestScoreDisplay.textContent = activeBest.toLocaleString();
+
+      if (this.combo >= 2) {
+        const movesLeft = CONFIG.SCORING.COMBO_GRACE_MOVES - this.movesSinceLastClear;
+        this.dom.comboBadge.textContent = `COMBO x${this.combo} · ${movesLeft} LEFT`;
+        this.dom.comboBadge.classList.add('visible');
+      } else {
+        this.dom.comboBadge.classList.remove('visible');
+      }
+
+      if (this.settings.undoMode === 'off') {
+        this.dom.btnUndo.classList.add('hidden');
+      } else {
+        this.dom.btnUndo.classList.remove('hidden');
+        const canUndo =
+          this.undoStack !== null &&
+          (this.settings.undoMode === 'unlimited' || this.undosRemaining > 0);
+        this.dom.btnUndo.disabled = !canUndo;
+        this.dom.undoBadge.textContent =
+          this.settings.undoMode === 'unlimited' ? '∞' : String(this.undosRemaining);
+      }
+    }
+
+    _openGameOverModal() {
+      this.state = 'GAME_OVER';
+      this._saveGameState();
+
+      const custom = isCustomRulesActive(this.settings);
+      const activeBest = custom ? this.bestScoreCustom : this.bestScoreClassic;
+
+      this.dom.goFinalScore.textContent = this.score.toLocaleString();
+      this.dom.goBestScore.textContent = activeBest.toLocaleString();
+      this.dom.goLinesCleared.textContent = String(this.linesClearedTotal);
+      this.dom.goMaxStreak.textContent = `${Math.max(1, this.maxStreak)}x`;
+      this.dom.goNewRecord.classList.toggle('hidden', !this.isNewRecord);
+
+      this.dom.goModal.classList.add('open');
+    }
+
+    /* --------------------------------------------------------------------------
+       FIXED-CLAMPED SIMULATION STEP
+       -------------------------------------------------------------------------- */
+    _loop(now) {
+      const rawDt = (now - this.lastFrameTime) / 1000;
+      this.lastFrameTime = now;
+      const dt = Math.min(Math.max(rawDt, 0.0001), 0.05);
+
+      this._update(dt);
+      this._render();
+
+      requestAnimationFrame((t) => this._loop(t));
+    }
+
+    _update(dt) {
+      this.elapsedTime += dt;
+
+      if (this.hitStopTimer > 0) {
+        this.hitStopTimer = Math.max(0, this.hitStopTimer - dt);
+        return;
+      }
+
+      if (this.displayedScore < this.score) {
+        const diff = this.score - this.displayedScore;
+        this.displayedScore += Math.max(1, diff * Math.min(1, dt * 16));
+        if (this.displayedScore >= this.score) {
+          this.displayedScore = this.score;
+        }
+        this.dom.scoreDisplay.textContent = Math.round(this.displayedScore).toLocaleString();
+      }
+
+      if (Math.abs(this.scorePopScale - 1.0) > 0.001 || Math.abs(this.scorePopVel) > 0.001) {
+        const force = (1.0 - this.scorePopScale) * CONFIG.SPRINGS.SCORE_POP_STIFFNESS;
+        this.scorePopVel =
+          (this.scorePopVel + force * dt) * Math.exp(-CONFIG.SPRINGS.SCORE_POP_DAMPING * dt);
+        this.scorePopScale += this.scorePopVel * dt;
+        this.dom.scoreDisplay.style.transform = `scale(${this.scorePopScale.toFixed(3)})`;
+      }
+
+      if (this.trauma > 0) {
+        this.trauma = Math.max(0, this.trauma - dt * 2.1);
+      }
+
+      if (this.state === 'NO_MOVES_BEAT') {
+        this.noMovesTimer -= dt;
+        if (this.noMovesTimer <= 0) {
+          this._openGameOverModal();
+        }
+      }
+
+      // Update board tile glows, Z-drop spring physics, sympathetic neighbor jostle & hover boost
+      const N = this.gridSize;
+      const previewRowSet = this.drag.active && this.drag.snapValid ? new Set(this.drag.previewRows) : null;
+      const previewColSet = this.drag.active && this.drag.snapValid ? new Set(this.drag.previewCols) : null;
+
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = this.board[r][c];
+          if (cell) {
+            if (cell.placeGlow > 0) {
+              cell.placeGlow = Math.max(0, cell.placeGlow - dt / cell.placeMaxDuration);
+            }
+
+            if (Math.abs(cell.zHeight) > 0.01 || Math.abs(cell.zVel) > 0.05) {
+              const prevZ = cell.zHeight;
+              const fz = -cell.zHeight * CONFIG.SPRINGS.Z_DROP_STIFFNESS;
+              cell.zVel = (cell.zVel + fz * dt) * Math.exp(-CONFIG.SPRINGS.Z_DROP_DAMPING * dt);
+              cell.zHeight += cell.zVel * dt;
+
+              if (!cell.impacted && prevZ > 0 && cell.zHeight <= 0) {
+                cell.impacted = true;
+                this._triggerTileImpact(r, c, cell.colorIndex);
+              }
+            } else {
+              cell.zHeight = 0;
+              cell.zVel = 0;
+            }
+
+            if (
+              Math.abs(cell.jostleX) > 0.005 ||
+              Math.abs(cell.jostleY) > 0.005 ||
+              Math.abs(cell.jostleVx) > 0.02 ||
+              Math.abs(cell.jostleVy) > 0.02
+            ) {
+              const jfx = -cell.jostleX * CONFIG.SPRINGS.JOSTLE_STIFFNESS;
+              const jfy = -cell.jostleY * CONFIG.SPRINGS.JOSTLE_STIFFNESS;
+              const jdamp = Math.exp(-CONFIG.SPRINGS.JOSTLE_DAMPING * dt);
+              cell.jostleVx = (cell.jostleVx + jfx * dt) * jdamp;
+              cell.jostleVy = (cell.jostleVy + jfy * dt) * jdamp;
+              cell.jostleX += cell.jostleVx * dt;
+              cell.jostleY += cell.jostleVy * dt;
+            } else {
+              cell.jostleX = 0;
+              cell.jostleY = 0;
+            }
+
+            const inPreClear =
+              this.settings.preClearHighlight &&
+              previewRowSet !== null &&
+              (previewRowSet.has(r) || previewColSet.has(c));
+            const targetBoost = inPreClear ? 1.0 : 0.0;
+            cell.hoverBoost += (targetBoost - cell.hoverBoost) * Math.min(1, dt * 14);
+          }
+
+          const ag = this.channelAfterglow[r][c];
+          if (ag.intensity > 0) {
+            ag.intensity = Math.max(0, ag.intensity - dt / ag.maxDuration);
+          }
+        }
+      }
+
+      // Update tray piece springs & Z-axis lift
+      for (let i = 0; i < CONFIG.TRAY_COUNT; i++) {
+        const piece = this.tray[i];
+        if (!piece) continue;
+
+        if (piece.spawnScale < 1.0) {
+          piece.spawnScale = Math.min(1.0, piece.spawnScale + dt * 5.5);
+        }
+        if (Math.abs(piece.rotAnimAngle) > 0.001) {
+          piece.rotAnimAngle *= Math.exp(-18 * dt);
+        } else {
+          piece.rotAnimAngle = 0;
+        }
+
+        const slotCenter = this.layout.slotCenters[i];
+        if (this.drag.active && this.drag.slotIndex === i) {
+          const fScale = (1.0 - this.drag.scale) * CONFIG.SPRINGS.PIECE_SCALE_STIFFNESS;
+          this.drag.scaleVel =
+            (this.drag.scaleVel + fScale * dt) * Math.exp(-CONFIG.SPRINGS.PIECE_SCALE_DAMPING * dt);
+          this.drag.scale += this.drag.scaleVel * dt;
+
+          this.drag.zLift += (CONFIG.PERSPECTIVE.DRAG_Z_LIFT - this.drag.zLift) * Math.min(1, dt * 22);
+
+          const targetLift = this._getDragLiftOffset(this.drag.pointerType);
+          this.drag.offsetY += (targetLift - this.drag.offsetY) * Math.min(1, dt * 24);
+
+          piece.x = this.drag.currX;
+          piece.y = this.drag.currY - this.drag.offsetY;
+          piece.vx = 0;
+          piece.vy = 0;
+        } else if (slotCenter) {
+          const fx = (slotCenter.x - piece.x) * CONFIG.SPRINGS.PIECE_RETURN_STIFFNESS;
+          const fy = (slotCenter.y - piece.y) * CONFIG.SPRINGS.PIECE_RETURN_STIFFNESS;
+          const damp = Math.exp(-CONFIG.SPRINGS.PIECE_RETURN_DAMPING * dt);
+          piece.vx = (piece.vx + fx * dt) * damp;
+          piece.vy = (piece.vy + fy * dt) * damp;
+          piece.x += piece.vx * dt;
+          piece.y += piece.vy * dt;
+        }
+      }
+
+      for (let i = this.rimFlashes.length - 1; i >= 0; i--) {
+        const rf = this.rimFlashes[i];
+        rf.life += dt;
+        if (rf.life >= rf.maxLife) {
+          this.rimFlashes.splice(i, 1);
+        }
+      }
+
+      for (let i = this.surgingTiles.length - 1; i >= 0; i--) {
+        const st = this.surgingTiles[i];
+        if (st.delay > 0) {
+          st.delay -= dt;
+          continue;
+        }
+        st.timer += dt;
+        if (st.timer >= st.duration) {
+          this._spawnTileShatter(st.r, st.c, st.colorIndex);
+          this.surgingTiles.splice(i, 1);
+        }
+      }
+
+      for (let i = this.shards.length - 1; i >= 0; i--) {
+        const sh = this.shards[i];
+        sh.life += dt;
+        if (sh.life >= sh.maxLife) {
+          this.shards.splice(i, 1);
+          continue;
+        }
+        sh.vy += CONFIG.SHARD_GRAVITY * dt;
+        sh.vx *= CONFIG.SHARD_DRAG;
+        sh.vy *= CONFIG.SHARD_DRAG;
+        sh.x += sh.vx * dt;
+        sh.y += sh.vy * dt;
+        sh.rot += sh.vRot * dt;
+      }
+
+      for (let i = this.embers.length - 1; i >= 0; i--) {
+        const em = this.embers[i];
+        em.life += dt;
+        if (em.life >= em.maxLife) {
+          this.embers.splice(i, 1);
+          continue;
+        }
+        em.vy += 120 * dt;
+        em.vx *= 0.96;
+        em.vy *= 0.96;
+        em.x += em.vx * dt;
+        em.y += em.vy * dt;
+      }
+
+      for (let i = this.ribbons.length - 1; i >= 0; i--) {
+        const rb = this.ribbons[i];
+        rb.life += dt;
+        if (rb.life >= rb.maxLife) {
+          this.ribbons.splice(i, 1);
+        }
+      }
+
+      for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+        const sw = this.shockwaves[i];
+        sw.life += dt;
+        if (sw.life >= sw.maxLife) {
+          this.shockwaves.splice(i, 1);
+          continue;
+        }
+        const t = sw.life / sw.maxLife;
+        const ease = 1 - Math.pow(1 - t, 3);
+        sw.radius = this.layout.cellSize * 0.25 + (sw.maxRadius - this.layout.cellSize * 0.25) * ease;
+      }
+
+      for (let i = this.callouts.length - 1; i >= 0; i--) {
+        const co = this.callouts[i];
+        co.life += dt;
+        if (co.life >= co.maxLife) {
+          this.callouts.splice(i, 1);
+          continue;
+        }
+        co.y += co.vy * dt;
+        co.vy *= Math.exp(-3.5 * dt);
+        co.scale += (1.0 - co.scale) * Math.min(1, dt * 18);
+      }
+    }
+
+    _triggerTileImpact(r, c, colorIndex) {
+      const { innerX, innerY, cellSize, cellGap } = this.layout;
+      const step = cellSize + cellGap;
+      const cx = innerX + c * step + cellSize * 0.5;
+      const cy = innerY + r * step + cellSize * 0.5;
+      const N = this.gridSize;
+
+      this.rimFlashes.push({
+        x: innerX + c * step,
+        y: innerY + r * step,
+        size: cellSize,
+        colorIndex,
+        life: 0,
+        maxLife: 0.34
+      });
+
+      this.shockwaves.push({
+        x: cx,
+        y: cy,
+        radius: cellSize * 0.42,
+        maxRadius: cellSize * 1.95,
+        life: 0,
+        maxLife: 0.38,
+        colorIndex
+      });
+
+      for (let k = 0; k < 4; k++) {
+        const ang = (Math.PI * 2 * k) / 4 + Math.random() * 0.8;
+        const dist = cellSize * 0.46;
+        const spd = 28 + Math.random() * 44;
+        this.embers.push({
+          x: cx + Math.cos(ang) * dist,
+          y: cy + Math.sin(ang) * dist,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - 14,
+          size: 1.3 + Math.random() * 1.3,
+          colorIndex,
+          life: 0,
+          maxLife: 0.24 + Math.random() * 0.16
+        });
+      }
+
+      const dirs = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1]
+      ];
+      for (let d = 0; d < dirs.length; d++) {
+        const nr = r + dirs[d][0];
+        const nc = c + dirs[d][1];
+        if (nr >= 0 && nr < N && nc >= 0 && nc < N) {
+          const neighbor = this.board[nr][nc];
+          if (neighbor && neighbor.impacted) {
+            neighbor.jostleVx += dirs[d][1] * 36;
+            neighbor.jostleVy += dirs[d][0] * 36;
+          }
+        }
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       2.5D FUSED EXTRUDED CRYSTAL / RESIN RENDERER & MUTUAL ILLUMINATION
+       -------------------------------------------------------------------------- */
+    _gatherActiveEmitters() {
+      const levelScale = CONFIG.LIGHTING.LEVEL_SCALES[this.settings.lightingLevel] || CONFIG.LIGHTING.LEVEL_SCALES.studio;
+      if (levelScale.mutual <= 0 && levelScale.bloom <= 0) return [];
+
+      const emitters = [];
+      const N = this.gridSize;
+      const { innerX, innerY, cellSize, cellGap } = this.layout;
+      const step = cellSize + cellGap;
+
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = this.board[r][c];
+          if (cell) {
+            const strength =
+              CONFIG.LIGHTING.RESTING_RADIANCE +
+              cell.placeGlow * CONFIG.LIGHTING.PLACE_RADIANCE_MULT +
+              cell.hoverBoost * 0.55;
+            emitters.push({
+              r,
+              c,
+              x: innerX + c * step + cellSize * 0.5,
+              y: innerY + r * step + cellSize * 0.5,
+              rgb: CONFIG.JEWEL_COLORS[cell.colorIndex].emission,
+              colorIndex: cell.colorIndex,
+              strength: strength * levelScale.mutual,
+              bloomStrength: (0.28 + cell.placeGlow * 1.45 + cell.hoverBoost * 0.35) * levelScale.bloom
+            });
+          } else {
+            const ag = this.channelAfterglow[r][c];
+            if (ag.intensity > 0.02) {
+              emitters.push({
+                r,
+                c,
+                x: innerX + c * step + cellSize * 0.5,
+                y: innerY + r * step + cellSize * 0.5,
+                rgb: CONFIG.JEWEL_COLORS[ag.colorIndex].emission,
+                colorIndex: ag.colorIndex,
+                strength: ag.intensity * 1.35 * levelScale.mutual,
+                bloomStrength: ag.intensity * 0.95 * levelScale.bloom
+              });
+            }
+          }
+        }
+      }
+
+      if (this.drag.active) {
+        const piece = this.tray[this.drag.slotIndex];
+        if (piece) {
+          const pieceW = piece.cols * cellSize + (piece.cols - 1) * cellGap;
+          const pieceH = piece.rows * cellSize + (piece.rows - 1) * cellGap;
+          const topLeftX = piece.x - pieceW * 0.5;
+          const topLeftY = piece.y - pieceH * 0.5;
+          const rgb = CONFIG.JEWEL_COLORS[piece.colorIndex].emission;
+
+          for (let pr = 0; pr < piece.rows; pr++) {
+            for (let pc = 0; pc < piece.cols; pc++) {
+              if (!piece.matrix[pr][pc]) continue;
+              const cx = topLeftX + pc * step + cellSize * 0.5;
+              const cy = topLeftY + pr * step + cellSize * 0.5;
+              const gridR = (cy - innerY - cellSize * 0.5) / step;
+              const gridC = (cx - innerX - cellSize * 0.5) / step;
+              if (gridR >= -2.5 && gridR <= N + 1.5 && gridC >= -2.5 && gridC <= N + 1.5) {
+                emitters.push({
+                  r: gridR,
+                  c: gridC,
+                  x: cx,
+                  y: cy,
+                  rgb,
+                  colorIndex: piece.colorIndex,
+                  strength: 1.55 * levelScale.mutual,
+                  bloomStrength: 0.85 * levelScale.bloom
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return emitters;
+    }
+
+    _computeTileFacetShading(r, c, colorIndex, placeGlow, clearSurge, hoverBoost, emitters, theme) {
+      const jewel = CONFIG.JEWEL_COLORS[colorIndex];
+      const [ar, ag, ab] = jewel.albedo;
+      const [er, eg, eb] = jewel.emission;
+      const [cr, cg, cb] = jewel.core;
+
+      const normals = CONFIG.LIGHTING.BEVEL_NORMALS;
+      const [kx, ky, kz] = CONFIG.LIGHTING.KEY_LIGHT_RAW;
+      const kLen = Math.hypot(kx, ky, kz) || 1;
+      const lx = kx / kLen;
+      const ly = ky / kLen;
+      const lz = kz / kLen;
+
+      const facets = ['top', 'left', 'right', 'bottom'];
+      const out = {};
+
+      for (let f = 0; f < 4; f++) {
+        const fname = facets[f];
+        const [nx, ny, nz] = normals[fname];
+        const ndotl = Math.max(0, nx * lx + ny * ly + nz * lz);
+        const baseI = theme.tileAmbient + ndotl * theme.tileKeyStrength;
+
+        let rr = ar * baseI;
+        let gg = ag * baseI;
+        let bb = ab * baseI;
+
+        if (r !== null && c !== null && emitters && emitters.length > 0) {
+          const maxR = CONFIG.LIGHTING.NEIGHBOR_RADIUS;
+          const kFall = CONFIG.LIGHTING.NEIGHBOR_FALLOFF_K;
+          const nzOff = CONFIG.LIGHTING.NEIGHBOR_Z;
+
+          for (let i = 0; i < emitters.length; i++) {
+            const em = emitters[i];
+            const dx = em.c - c;
+            const dy = em.r - r;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < 0.01 || distSq > maxR * maxR) continue;
+
+            const dist = Math.sqrt(distSq);
+            const invLen = 1 / Math.hypot(dx, dy, nzOff);
+            const dirX = dx * invLen;
+            const dirY = dy * invLen;
+            const dirZ = nzOff * invLen;
+
+            const facing = Math.max(0, nx * dirX + ny * dirY + nz * dirZ);
+            if (facing <= 0.001) continue;
+
+            const atten = em.strength / (1 + kFall * distSq);
+            const contrib = facing * atten * (1 - dist / (maxR + 0.35));
+            if (contrib > 0.002) {
+              rr += em.rgb[0] * contrib;
+              gg += em.rgb[1] * contrib;
+              bb += em.rgb[2] * contrib;
+            }
+          }
+        }
+
+        const selfBoost = placeGlow * 0.62 + hoverBoost * 0.25;
+        rr += er * selfBoost + (cr - rr) * clearSurge * 0.85;
+        gg += eg * selfBoost + (cg - gg) * clearSurge * 0.85;
+        bb += eb * selfBoost + (cb - bb) * clearSurge * 0.85;
+
+        if (clearSurge > 0.01) {
+          const hot = clearSurge * clearSurge * 255;
+          rr = Math.min(255, rr + hot * 0.85);
+          gg = Math.min(255, gg + hot * 0.82);
+          bb = Math.min(255, bb + hot * 0.72);
+        }
+
+        out[fname] = [
+          Math.min(255, Math.max(0, rr | 0)),
+          Math.min(255, Math.max(0, gg | 0)),
+          Math.min(255, Math.max(0, bb | 0))
+        ];
+      }
+
+      const centerBase = theme.tileAmbient + 0.56 * theme.tileKeyStrength;
+      const coreBoost = placeGlow * 0.55 + hoverBoost * 0.22;
+      const centerColor = [
+        Math.min(255, (ar * centerBase + er * coreBoost + clearSurge * 230) | 0),
+        Math.min(255, (ag * centerBase + eg * coreBoost + clearSurge * 225) | 0),
+        Math.min(255, (ab * centerBase + eb * coreBoost + clearSurge * 200) | 0)
+      ];
+
+      const coreBright = [
+        Math.min(255, (centerColor[0] * 0.65 + cr * 0.35 + placeGlow * 65 + clearSurge * 120) | 0),
+        Math.min(255, (centerColor[1] * 0.65 + cg * 0.35 + placeGlow * 65 + clearSurge * 120) | 0),
+        Math.min(255, (centerColor[2] * 0.65 + cb * 0.35 + placeGlow * 65 + clearSurge * 120) | 0)
+      ];
+
+      const toRGB = (rgb) => `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+      return {
+        top: toRGB(out.top),
+        left: toRGB(out.left),
+        right: toRGB(out.right),
+        bottom: toRGB(out.bottom),
+        centerEdge: toRGB(centerColor),
+        centerCore: toRGB(coreBright)
+      };
+    }
+
+    _roundRectPath(ctx, x, y, w, h, r) {
+      const rad = Math.min(r, w * 0.5, h * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(x + rad, y);
+      ctx.lineTo(x + w - rad, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + rad);
+      ctx.lineTo(x + w, y + h - rad);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - rad, y + h);
+      ctx.lineTo(x + rad, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - rad);
+      ctx.lineTo(x, y + rad);
+      ctx.quadraticCurveTo(x, y, x + rad, y);
+      ctx.closePath();
+    }
+
+    _traceRoundedPolygonLoop(ctx, loop, originX, originY, step, cellSize, cellGap, cornerR) {
+      const len = loop.length;
+      if (len < 3) return;
+
+      const pts = new Array(len);
+      for (let i = 0; i < len; i++) {
+        const gx = loop[i].x;
+        const gy = loop[i].y;
+        pts[i] = {
+          x: originX + gx * step - (gx > 0 ? cellGap * 0.5 : 0),
+          y: originY + gy * step - (gy > 0 ? cellGap * 0.5 : 0)
+        };
+      }
+
+      for (let i = 0; i < len; i++) {
+        const prev = pts[(i - 1 + len) % len];
+        const curr = pts[i];
+        const next = pts[(i + 1) % len];
+
+        const vInX = curr.x - prev.x;
+        const vInY = curr.y - prev.y;
+        const lenIn = Math.hypot(vInX, vInY) || 1;
+
+        const vOutX = next.x - curr.x;
+        const vOutY = next.y - curr.y;
+        const lenOut = Math.hypot(vOutX, vOutY) || 1;
+
+        const d = Math.min(cornerR, lenIn * 0.44, lenOut * 0.44);
+        const startX = curr.x - (vInX / lenIn) * d;
+        const startY = curr.y - (vInY / lenIn) * d;
+        const endX = curr.x + (vOutX / lenOut) * d;
+        const endY = curr.y + (vOutY / lenOut) * d;
+
+        if (i === 0) {
+          ctx.moveTo(startX, startY);
+        } else {
+          ctx.lineTo(startX, startY);
+        }
+        ctx.quadraticCurveTo(curr.x, curr.y, endX, endY);
+      }
+      ctx.closePath();
+    }
+
+    _drawOpticalStarGlint(ctx, x, y, radius, alpha) {
+      if (alpha <= 0.02) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalCompositeOperation = 'lighter';
+
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 0.75);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+      grad.addColorStop(0.4, `rgba(255, 248, 220, ${alpha * 0.45})`);
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha * 1.15)})`;
+      ctx.beginPath();
+      ctx.moveTo(0, -radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.quadraticCurveTo(0, 0, 0, radius);
+      ctx.quadraticCurveTo(0, 0, -radius, 0);
+      ctx.quadraticCurveTo(0, 0, 0, -radius);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    _drawFused3DCrystalCluster(
+      ctx,
+      cells,
+      boundaryLoops,
+      originX,
+      originY,
+      tileSize,
+      gapSize,
+      colorIndex,
+      zBase,
+      zDepth,
+      placeGlow,
+      clearSurge,
+      hoverBoost,
+      emitters,
+      theme
+    ) {
+      if (!cells || cells.length === 0) return;
+      const jewel = CONFIG.JEWEL_COLORS[colorIndex];
+      const step = tileSize + gapSize;
+      const cornerR = tileSize * CONFIG.LIGHTING.CORNER_RADIUS_RATIO;
+      const bevelW = tileSize * CONFIG.LIGHTING.BEVEL_WIDTH_RATIO;
+
+      const projDx = CONFIG.PERSPECTIVE.PROJ_DX;
+      const projDy = CONFIG.PERSPECTIVE.PROJ_DY;
+
+      const topTotalZ = zBase + zDepth;
+      const topShiftX = topTotalZ * projDx;
+      const topShiftY = topTotalZ * projDy;
+
+      let repR = null;
+      let repC = null;
+      if (cells[0].boardR !== undefined) {
+        repR = cells[0].boardR;
+        repC = cells[0].boardC;
+      }
+      const shades = this._computeTileFacetShading(
+        repR,
+        repC,
+        colorIndex,
+        placeGlow,
+        clearSurge,
+        hoverBoost,
+        emitters,
+        theme
+      );
+
+      // 1. Floor Contact Shadow & Rainbow Prism Caustic Dispersion Pool on Obsidian Table
+      const shadowDist = Math.max(2, zBase + 3);
+      const shadowOffX = shadowDist * CONFIG.PERSPECTIVE.SHADOW_DX;
+      const shadowOffY = shadowDist * CONFIG.PERSPECTIVE.SHADOW_DY;
+      const shadowAlpha = Math.max(0.14, 0.44 - zBase * 0.008);
+
+      ctx.save();
+      ctx.beginPath();
+      for (let l = 0; l < boundaryLoops.length; l++) {
+        this._traceRoundedPolygonLoop(
+          ctx,
+          boundaryLoops[l],
+          originX + shadowOffX,
+          originY + shadowOffY,
+          step,
+          tileSize,
+          gapSize,
+          cornerR
+        );
+      }
+      ctx.fillStyle = `rgba(0, 0, 0, ${shadowAlpha})`;
+      ctx.fill();
+
+      if (this.settings.lightingLevel !== 'off') {
+        ctx.globalCompositeOperation = 'lighter';
+        const causticSprite = this.glowCache.rainbowCausticSprite;
+        const cSize = tileSize * (1.35 + zBase * 0.015);
+        const cAlpha = Math.max(0.12, 0.32 + placeGlow * 0.28 - zBase * 0.005);
+        ctx.globalAlpha = cAlpha;
+        for (let i = 0; i < cells.length; i++) {
+          const cx = originX + cells[i].c * step + tileSize * 0.5 + shadowOffX * 1.15;
+          const cy = originY + cells[i].r * step + tileSize * 0.5 + shadowOffY * 1.15;
+          ctx.drawImage(causticSprite, cx - cSize * 0.5, cy - cSize * 0.5, cSize, cSize);
+        }
+      }
+      ctx.restore();
+
+      // 2. 3D Extruded Translucent Resin Side Walls
+      const [ar, ag, ab] = jewel.albedo;
+      const [wr, wg, wb] = jewel.wallDark;
+      const [er, eg, eb] = jewel.emission;
+      const slices = 6;
+
+      ctx.save();
+      for (let s = 0; s < slices; s++) {
+        const t = s / slices;
+        const zSlice = zBase + zDepth * t;
+        const sx = originX + zSlice * projDx;
+        const sy = originY + zSlice * projDy;
+
+        ctx.beginPath();
+        for (let l = 0; l < boundaryLoops.length; l++) {
+          this._traceRoundedPolygonLoop(ctx, boundaryLoops[l], sx, sy, step, tileSize, gapSize, cornerR);
+        }
+
+        const floorRim = s === 0 ? 0.35 : 0;
+        const rCol = Math.min(255, (wr * (1 - t) + ar * t + er * (floorRim + placeGlow * 0.25)) | 0);
+        const gCol = Math.min(255, (wg * (1 - t) + ag * t + eg * (floorRim + placeGlow * 0.25)) | 0);
+        const bCol = Math.min(255, (wb * (1 - t) + ab * t + eb * (floorRim + placeGlow * 0.25)) | 0);
+
+        ctx.fillStyle = `rgba(${rCol}, ${gCol}, ${bCol}, 0.92)`;
+        ctx.fill();
+
+        if (s === 0) {
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = `rgba(${Math.min(255, er + 60)}, ${Math.min(255, eg + 60)}, ${Math.min(
+            255,
+            eb + 60
+          )}, ${0.52 + placeGlow * 0.35})`;
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+
+      // 3. Elevated 3D Top Face with Pre-Baked Volumetric Material & Bevel Rim
+      const topX = originX + topShiftX;
+      const topY = originY + topShiftY;
+
+      ctx.save();
+      ctx.beginPath();
+      for (let l = 0; l < boundaryLoops.length; l++) {
+        this._traceRoundedPolygonLoop(ctx, boundaryLoops[l], topX, topY, step, tileSize, gapSize, cornerR);
+      }
+
+      const topGrad = ctx.createLinearGradient(topX, topY, topX + tileSize * 3, topY + tileSize * 3);
+      topGrad.addColorStop(0, shades.top);
+      topGrad.addColorStop(0.5, shades.centerCore);
+      topGrad.addColorStop(1, shades.right);
+      ctx.fillStyle = topGrad;
+      ctx.fill();
+
+      ctx.clip();
+
+      const matCanvas = this.glowCache.materialCanvases[colorIndex];
+      if (matCanvas && jewel.material !== 'framed_cube') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.72 + placeGlow * 0.25 + clearSurge * 0.3;
+        const parallaxX = topShiftX * 0.45;
+        const parallaxY = topShiftY * 0.45;
+        for (let tx = topX - 128; tx < topX + tileSize * 5 + 128; tx += 256) {
+          for (let ty = topY - 128; ty < topY + tileSize * 5 + 128; ty += 256) {
+            ctx.drawImage(matCanvas, tx + parallaxX, ty + parallaxY, 256, 256);
+          }
+        }
+        ctx.restore();
+      }
+
+      if (cells.length > 1) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.14 + placeGlow * 0.12})`;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < cells.length; i++) {
+          const cx = topX + cells[i].c * step;
+          const cy = topY + cells[i].r * step;
+          this._roundRectPath(ctx, cx + 1, cy + 1, tileSize - 2, tileSize - 2, cornerR * 0.7);
+          ctx.stroke();
+        }
+      }
+
+      if (jewel.material === 'framed_cube') {
+        for (let i = 0; i < cells.length; i++) {
+          const cx = topX + cells[i].c * step;
+          const cy = topY + cells[i].r * step;
+          const pad1 = tileSize * 0.16;
+          const pad2 = tileSize * 0.23;
+
+          this._roundRectPath(ctx, cx + pad1, cy + pad1, tileSize - pad1 * 2, tileSize - pad1 * 2, cornerR * 0.45);
+          ctx.fillStyle = shades.centerCore;
+          ctx.fill();
+
+          ctx.lineWidth = Math.max(1.4, tileSize * 0.045);
+          ctx.strokeStyle = 'rgba(253, 230, 175, 0.85)';
+          ctx.stroke();
+
+          this._roundRectPath(ctx, cx + pad2, cy + pad2, tileSize - pad2 * 2, tileSize - pad2 * 2, cornerR * 0.3);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(233, 213, 255, 0.75)';
+          ctx.stroke();
+        }
+      }
+
+      const sheenGrad = ctx.createLinearGradient(topX, topY, topX + tileSize * 2.2, topY + tileSize * 2.2);
+      sheenGrad.addColorStop(0, `rgba(255, 255, 255, ${0.34 * theme.specularAlpha})`);
+      sheenGrad.addColorStop(0.45, 'rgba(255, 255, 255, 0.04)');
+      sheenGrad.addColorStop(1, 'rgba(255, 255, 255, 0.14)');
+      ctx.fillStyle = sheenGrad;
+      ctx.fillRect(topX - tileSize, topY - tileSize, tileSize * 7, tileSize * 7);
+
+      if (placeGlow > 0.1) {
+        const sweepPhase = 1.0 - placeGlow;
+        const span = tileSize * 4;
+        const sweepX = topX - span * 0.4 + sweepPhase * span * 1.6;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const sweepGrad = ctx.createLinearGradient(sweepX - tileSize * 0.6, topY, sweepX + tileSize * 0.6, topY + span);
+        const sweepAlpha = Math.sin(Math.min(1, placeGlow) * Math.PI) * 0.52;
+        sweepGrad.addColorStop(0, 'rgba(255, 250, 225, 0)');
+        sweepGrad.addColorStop(0.5, `rgba(255, 250, 225, ${sweepAlpha})`);
+        sweepGrad.addColorStop(1, 'rgba(255, 250, 225, 0)');
+        ctx.fillStyle = sweepGrad;
+        ctx.fillRect(topX - tileSize, topY - tileSize, tileSize * 7, tileSize * 7);
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      // 4. Crisp Chamfered Glass Top Rim Outline + Upper-Right 4-Point Optical Star-Burst Glint
+      ctx.save();
+      ctx.beginPath();
+      for (let l = 0; l < boundaryLoops.length; l++) {
+        this._traceRoundedPolygonLoop(ctx, boundaryLoops[l], topX, topY, step, tileSize, gapSize, cornerR);
+      }
+      ctx.lineWidth = Math.max(1.2, bevelW * 0.28);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${(0.52 + placeGlow * 0.35 + clearSurge * 0.4) * theme.specularAlpha})`;
+      ctx.stroke();
+      ctx.restore();
+
+      let bestCorner = null;
+      let bestScore = -Infinity;
+      for (let l = 0; l < boundaryLoops.length; l++) {
+        const loop = boundaryLoops[l];
+        for (let i = 0; i < loop.length; i++) {
+          const score = loop[i].x - loop[i].y * 0.85;
+          if (score > bestScore) {
+            bestScore = score;
+            bestCorner = loop[i];
+          }
+        }
+      }
+      if (bestCorner) {
+        const gx = topX + bestCorner.x * step - (bestCorner.x > 0 ? gapSize * 0.5 : 0) - cornerR * 0.25;
+        const gy = topY + bestCorner.y * step - (bestCorner.y > 0 ? gapSize * 0.5 : 0) + cornerR * 0.25;
+        const glintAlpha = (0.62 + placeGlow * 0.35 + clearSurge * 0.38) * theme.specularAlpha;
+        this._drawOpticalStarGlint(ctx, gx, gy, tileSize * (0.34 + placeGlow * 0.14), glintAlpha);
+      }
+    }
+
+    _renderOffscreenRadianceMap(emitters) {
+      const lCtx = this.lightCtx;
+      const lw = this.lightCanvas.width;
+      const lh = this.lightCanvas.height;
+      lCtx.setTransform(1, 0, 0, 1, 0, 0);
+      lCtx.clearRect(0, 0, lw, lh);
+
+      if (!emitters || emitters.length === 0) return;
+
+      const scale = lw / this.layout.innerSize;
+      const { innerX, innerY, cellSize } = this.layout;
+
+      lCtx.save();
+      lCtx.globalCompositeOperation = 'lighter';
+
+      for (let i = 0; i < emitters.length; i++) {
+        const em = emitters[i];
+        if (em.bloomStrength <= 0.02) continue;
+        const lx = (em.x - innerX) * scale;
+        const ly = (em.y - innerY) * scale;
+        const radius = cellSize * 2.1 * scale * (1 + Math.min(0.45, em.bloomStrength * 0.22));
+        const sprite = this.glowCache.sprites[em.colorIndex] || this.glowCache.whiteGoldSprite;
+
+        lCtx.globalAlpha = Math.min(0.95, em.bloomStrength * 0.55);
+        lCtx.drawImage(sprite, lx - radius, ly - radius, radius * 2, radius * 2);
+      }
+
+      lCtx.restore();
+    }
+
+    /* --------------------------------------------------------------------------
+       MAIN RENDER PIPELINE: 3D STUDIO ENVIRONMENT + 2.5D FUSED CRYSTAL BLOCKS
+       -------------------------------------------------------------------------- */
+    _renderStudioEnvironment(ctx, W, H, theme) {
+      const { railW, boardX, boardY, boardSize, innerX, innerY, innerSize, cellSize, cellGap } = this.layout;
+      const N = this.gridSize;
+      const step = cellSize + cellGap;
+
+      // 1. Deep Obsidian Studio Backdrop
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, theme.bgTop);
+      bgGrad.addColorStop(1, theme.bgBottom);
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      if (this.glowCache.obsidianGrainCanvas) {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        for (let gx = railW; gx < W - railW; gx += 128) {
+          for (let gy = 0; gy < H; gy += 128) {
+            ctx.drawImage(this.glowCache.obsidianGrainCanvas, gx, gy);
+          }
+        }
+        ctx.restore();
+      }
+
+      // 2. Glossy Obsidian Table Surface & Prismatic Laser-Etched Grid Lines
+      ctx.save();
+      this._roundRectPath(ctx, boardX, boardY, boardSize, boardSize, Math.max(16, boardSize * 0.042));
+      ctx.fillStyle = theme.boardOuter;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = theme.boardOuterBorder;
+      ctx.stroke();
+
+      this._roundRectPath(ctx, innerX - 4, innerY - 4, innerSize + 8, innerSize + 8, Math.max(12, boardSize * 0.03));
+      ctx.fillStyle = theme.boardInner;
+      ctx.fill();
+
+      const prismGrad = ctx.createLinearGradient(innerX, innerY, innerX + innerSize, innerY + innerSize);
+      prismGrad.addColorStop(0.0, 'rgba(34, 211, 238, 0.34)');
+      prismGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.30)');
+      prismGrad.addColorStop(1.0, 'rgba(251, 146, 60, 0.34)');
+
+      ctx.strokeStyle = prismGrad;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= N; i++) {
+        const pos = i === N ? innerSize : i * step - cellGap * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(innerX + pos, innerY);
+        ctx.lineTo(innerX + pos, innerY + innerSize);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(innerX, innerY + pos);
+        ctx.lineTo(innerX + innerSize, innerY + pos);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 3. Machined Dark-Titanium Left & Right Side Rails + Neon LED Light Strips
+      const drawTitaniumRail = (rx, isLeft) => {
+        ctx.save();
+        const metalGrad = ctx.createLinearGradient(rx, 0, rx + railW, 0);
+        if (isLeft) {
+          metalGrad.addColorStop(0, '#0d1017');
+          metalGrad.addColorStop(0.65, '#1b202c');
+          metalGrad.addColorStop(1, '#10141d');
+        } else {
+          metalGrad.addColorStop(0, '#10141d');
+          metalGrad.addColorStop(0.35, '#1b202c');
+          metalGrad.addColorStop(1, '#0d1017');
+        }
+        ctx.fillStyle = metalGrad;
+        ctx.fillRect(rx, 0, railW, H);
+
+        const panelH = 74;
+        for (let py = 20; py < H; py += panelH) {
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.72)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(rx + 2, py);
+          ctx.lineTo(rx + railW - 2, py);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(rx + 2, py + 1.5);
+          ctx.lineTo(rx + railW - 2, py + 1.5);
+          ctx.stroke();
+
+          const boltX = isLeft ? rx + railW * 0.42 : rx + railW * 0.58;
+          [py + 10, py + panelH - 10].forEach((by) => {
+            if (by < H - 8) {
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+              ctx.beginPath();
+              ctx.arc(boltX, by, 2.1, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+              ctx.beginPath();
+              ctx.arc(boltX - 0.5, by - 0.5, 1.1, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          });
+        }
+
+        const ledW = 3.2;
+        const ledX = isLeft ? rx + railW - ledW - 1.5 : rx + 1.5;
+        const ledGrad = ctx.createLinearGradient(0, 0, 0, H);
+        if (isLeft) {
+          ledGrad.addColorStop(0, theme.leftLedTop);
+          ledGrad.addColorStop(1, theme.leftLedBottom);
+        } else {
+          ledGrad.addColorStop(0, theme.rightLedTop);
+          ledGrad.addColorStop(1, theme.rightLedBottom);
+        }
+
+        ctx.fillStyle = ledGrad;
+        ctx.fillRect(ledX, 0, ledW, H);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.fillRect(ledX + 0.9, 0, ledW - 1.8, H);
+
+        ctx.globalCompositeOperation = 'lighter';
+        const washW = 38;
+        const washX = isLeft ? ledX + ledW : ledX - washW;
+        const washGrad = ctx.createLinearGradient(
+          isLeft ? washX : washX + washW,
+          0,
+          isLeft ? washX + washW : washX,
+          0
+        );
+        washGrad.addColorStop(0, isLeft ? 'rgba(56, 189, 248, 0.22)' : 'rgba(251, 191, 36, 0.22)');
+        washGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = washGrad;
+        ctx.fillRect(washX, 0, washW, H);
+
+        ctx.restore();
+      };
+
+      drawTitaniumRail(0, true);
+      drawTitaniumRail(W - railW, false);
+    }
+
+    _renderVolumetricGodRays(ctx, W, H, theme) {
+      const [gr, gg, gb] = theme.godRayColor;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      const rayGrad = ctx.createLinearGradient(W * 0.92, 0, W * 0.22, H * 0.68);
+      rayGrad.addColorStop(0.0, `rgba(${gr}, ${gg}, ${gb}, 0.22)`);
+      rayGrad.addColorStop(0.45, `rgba(${gr}, ${gg}, ${gb}, 0.08)`);
+      rayGrad.addColorStop(1.0, `rgba(${gr}, ${gg}, ${gb}, 0.0)`);
+
+      ctx.beginPath();
+      ctx.moveTo(W * 0.62, 0);
+      ctx.lineTo(W - this.layout.railW, 0);
+      ctx.lineTo(W - this.layout.railW, H * 0.48);
+      ctx.lineTo(W * 0.16, H * 0.72);
+      ctx.lineTo(W * 0.08, H * 0.44);
+      ctx.closePath();
+      ctx.fillStyle = rayGrad;
+      ctx.fill();
+
+      for (let i = 0; i < this.godRayMotes.length; i++) {
+        const m = this.godRayMotes[i];
+        const t = (this.elapsedTime * m.speed + m.u) % 1;
+        const mx = W * (0.92 - t * 0.75) + Math.sin(this.elapsedTime * 0.9 + m.phase) * 14;
+        const my = H * (0.02 + t * 0.58) + Math.cos(this.elapsedTime * 0.7 + m.phase) * 10;
+        const twinkle = (1 - t) * (0.45 + 0.55 * Math.sin(this.elapsedTime * 2.5 + m.phase));
+
+        if (twinkle > 0.05) {
+          ctx.fillStyle = `rgba(255, 246, 214, ${twinkle * 0.75})`;
+          ctx.beginPath();
+          ctx.arc(mx, my, m.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    _render() {
+      const ctx = this.ctx;
+      const dpr = this.dpr;
+      const W = this.viewW;
+      const H = this.viewH;
+      const theme = CONFIG.THEMES[this.settings.theme] || CONFIG.THEMES.obsidian;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      // 1. 3D Studio Environment
+      this._renderStudioEnvironment(ctx, W, H, theme);
+
+      // 2. World Pass with Trauma-Squared Camera Shake
+      ctx.save();
+      if (this.trauma > 0) {
+        const shakeMag = this.trauma * this.trauma * 11;
+        const sx = (Math.random() * 2 - 1) * shakeMag;
+        const sy = (Math.random() * 2 - 1) * shakeMag;
+        ctx.translate(sx, sy);
+      }
+
+      const { innerX, innerY, innerSize, cellSize, cellGap, trayX, trayY, trayW, trayH } = this.layout;
+      const N = this.gridSize;
+      const step = cellSize + cellGap;
+
+      const emitters = this._gatherActiveEmitters();
+
+      // 3. Recessed Grid Slots + 1.8s Cleared-Channel Plasma Afterglow
+      const slotRadius = cellSize * 0.16;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const sx = innerX + c * step;
+          const sy = innerY + r * step;
+
+          this._roundRectPath(ctx, sx, sy, cellSize, cellSize, slotRadius);
+          ctx.fillStyle = theme.slotFill;
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = theme.slotBorder;
+          ctx.stroke();
+
+          const ag = this.channelAfterglow[r][c];
+          if (ag.intensity > 0.01) {
+            const [er, eg, eb] = CONFIG.JEWEL_COLORS[ag.colorIndex].emission;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            this._roundRectPath(ctx, sx, sy, cellSize, cellSize, slotRadius);
+            ctx.fillStyle = `rgba(${er}, ${eg}, ${eb}, ${ag.intensity * 0.34})`;
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = `rgba(255, 248, 220, ${ag.intensity * 0.42})`;
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      // 4. Composite Half-Resolution Offscreen Radiance Lightmap over Board Grooves
+      this._renderOffscreenRadianceMap(emitters);
+      if (this.settings.lightingLevel !== 'off') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(this.lightCanvas, innerX, innerY, innerSize, innerSize);
+        ctx.restore();
+      }
+
+      // 5. Z-Drop Glass-on-Obsidian Placement Contact Rim Flashes
+      for (let i = 0; i < this.rimFlashes.length; i++) {
+        const rf = this.rimFlashes[i];
+        const t = rf.life / rf.maxLife;
+        const alpha = (1 - t) * (1 - t);
+        const expand = t * 5;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        this._roundRectPath(
+          ctx,
+          rf.x - expand,
+          rf.y - expand,
+          rf.size + expand * 2,
+          rf.size + expand * 2,
+          slotRadius + expand
+        );
+        ctx.lineWidth = 2.4 * (1 - t * 0.5);
+        ctx.strokeStyle = `rgba(255, 250, 225, ${alpha * 0.85})`;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 6. Alignment Guides & 3D Holographic Target Silhouette
+      if (this.drag.active && this.drag.snapValid) {
+        const piece = this.tray[this.drag.slotIndex];
+        if (piece) {
+          const jewel = CONFIG.JEWEL_COLORS[piece.colorIndex];
+          const [er, eg, eb] = jewel.emission;
+
+          if (this.settings.alignmentGuides) {
+            ctx.save();
+            ctx.strokeStyle = `rgba(${er}, ${eg}, ${eb}, 0.24)`;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            for (let pc = 0; pc < piece.cols; pc++) {
+              const gx = innerX + (this.drag.snapCol + pc) * step + cellSize * 0.5;
+              ctx.beginPath();
+              ctx.moveTo(gx, innerY);
+              ctx.lineTo(gx, innerY + innerSize);
+              ctx.stroke();
+            }
+            for (let pr = 0; pr < piece.rows; pr++) {
+              const gy = innerY + (this.drag.snapRow + pr) * step + cellSize * 0.5;
+              ctx.beginPath();
+              ctx.moveTo(innerX, gy);
+              ctx.lineTo(innerX + innerSize, gy);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+          const snapOriginX = innerX + this.drag.snapCol * step;
+          const snapOriginY = innerY + this.drag.snapRow * step;
+          const holoZ = cellSize * CONFIG.PERSPECTIVE.BLOCK_Z_DEPTH_RATIO;
+          const holoTopX = snapOriginX + holoZ * CONFIG.PERSPECTIVE.PROJ_DX;
+          const holoTopY = snapOriginY + holoZ * CONFIG.PERSPECTIVE.PROJ_DY;
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.beginPath();
+          for (let l = 0; l < piece.boundaryLoops.length; l++) {
+            this._traceRoundedPolygonLoop(
+              ctx,
+              piece.boundaryLoops[l],
+              snapOriginX,
+              snapOriginY,
+              step,
+              cellSize,
+              cellGap,
+              cellSize * 0.2
+            );
+          }
+          ctx.fillStyle = `rgba(${er}, ${eg}, ${eb}, 0.20)`;
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = `rgba(${er}, ${eg}, ${eb}, 0.55)`;
+          ctx.stroke();
+
+          ctx.beginPath();
+          for (let l = 0; l < piece.boundaryLoops.length; l++) {
+            this._traceRoundedPolygonLoop(
+              ctx,
+              piece.boundaryLoops[l],
+              holoTopX,
+              holoTopY,
+              step,
+              cellSize,
+              cellGap,
+              cellSize * 0.2
+            );
+          }
+          ctx.fillStyle = `rgba(${er}, ${eg}, ${eb}, 0.16)`;
+          ctx.fill();
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.stroke();
+          ctx.restore();
+
+          if (
+            this.settings.preClearHighlight &&
+            (this.drag.previewRows.length > 0 || this.drag.previewCols.length > 0)
+          ) {
+            const pulse = 0.65 + 0.35 * Math.sin(this.elapsedTime * 10);
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.lineWidth = 2.4;
+            ctx.strokeStyle = `rgba(255, 224, 102, ${0.55 * pulse})`;
+            ctx.fillStyle = `rgba(56, 228, 255, ${0.11 * pulse})`;
+
+            for (const r of this.drag.previewRows) {
+              const ry = innerY + r * step - 1.5;
+              this._roundRectPath(ctx, innerX - 1.5, ry, innerSize + 3, cellSize + 3, slotRadius + 2);
+              ctx.fill();
+              ctx.stroke();
+            }
+            for (const c of this.drag.previewCols) {
+              const cx = innerX + c * step - 1.5;
+              this._roundRectPath(ctx, cx, innerY - 1.5, cellSize + 3, innerSize + 3, slotRadius + 2);
+              ctx.fill();
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+        }
+      }
+
+      // 7. Placed 2.5D Fused Crystal & Resin Blocks
+      const visited = Array.from({ length: N }, () => Array(N).fill(false));
+      const renderGroups = [];
+
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = this.board[r][c];
+          if (!cell || visited[r][c]) continue;
+
+          const jewel = CONFIG.JEWEL_COLORS[cell.colorIndex];
+          const groupCells = [];
+
+          if (!jewel.fused) {
+            visited[r][c] = true;
+            groupCells.push({ r: 0, c: 0, boardR: r, boardC: c, cell });
+          } else {
+            const queue = [[r, c]];
+            visited[r][c] = true;
+            while (queue.length > 0) {
+              const [cr, cc] = queue.shift();
+              const curCell = this.board[cr][cc];
+              groupCells.push({ r: cr, c: cc, boardR: cr, boardC: cc, cell: curCell });
+
+              const dirs = [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1]
+              ];
+              for (let d = 0; d < 4; d++) {
+                const nr = cr + dirs[d][0];
+                const nc = cc + dirs[d][1];
+                if (
+                  nr >= 0 &&
+                  nr < N &&
+                  nc >= 0 &&
+                  nc < N &&
+                  !visited[nr][nc] &&
+                  this.board[nr][nc] &&
+                  this.board[nr][nc].groupId === cell.groupId &&
+                  this.board[nr][nc].colorIndex === cell.colorIndex
+                ) {
+                  visited[nr][nc] = true;
+                  queue.push([nr, nc]);
+                }
+              }
+            }
+          }
+
+          let minR = Infinity;
+          let minC = Infinity;
+          let sumPlace = 0;
+          let sumHover = 0;
+          let sumZ = 0;
+          let sumJx = 0;
+          let sumJy = 0;
+
+          for (let i = 0; i < groupCells.length; i++) {
+            const gc = groupCells[i];
+            if (gc.boardR < minR) minR = gc.boardR;
+            if (gc.boardC < minC) minC = gc.boardC;
+            sumPlace = Math.max(sumPlace, gc.cell.placeGlow);
+            sumHover = Math.max(sumHover, gc.cell.hoverBoost);
+            sumZ += gc.cell.zHeight;
+            sumJx += gc.cell.jostleX;
+            sumJy += gc.cell.jostleY;
+          }
+
+          const localCells = groupCells.map((gc) => ({
+            r: gc.boardR - minR,
+            c: gc.boardC - minC,
+            boardR: gc.boardR,
+            boardC: gc.boardC
+          }));
+
+          renderGroups.push({
+            minR,
+            minC,
+            colorIndex: cell.colorIndex,
+            localCells,
+            boundaryLoops: traceFusedBoundaryLoops(localCells),
+            placeGlow: sumPlace,
+            hoverBoost: sumHover,
+            zHeight: sumZ / groupCells.length,
+            jostleX: sumJx / groupCells.length,
+            jostleY: sumJy / groupCells.length
+          });
+        }
+      }
+
+      renderGroups.sort((a, b) => (a.minR !== b.minR ? a.minR - b.minR : a.minC - b.minC));
+      const blockZDepth = cellSize * CONFIG.PERSPECTIVE.BLOCK_Z_DEPTH_RATIO;
+
+      for (let i = 0; i < renderGroups.length; i++) {
+        const grp = renderGroups[i];
+        const ox = innerX + grp.minC * step + grp.jostleX;
+        const oy = innerY + grp.minR * step + grp.jostleY;
+        this._drawFused3DCrystalCluster(
+          ctx,
+          grp.localCells,
+          grp.boundaryLoops,
+          ox,
+          oy,
+          cellSize,
+          cellGap,
+          grp.colorIndex,
+          grp.zHeight,
+          blockZDepth,
+          grp.placeGlow,
+          0,
+          grp.hoverBoost,
+          emitters,
+          theme
+        );
+      }
+
+      // 8. Wave-Staggered Incandescent Surging Tiles
+      for (let i = 0; i < this.surgingTiles.length; i++) {
+        const st = this.surgingTiles[i];
+        const progress = st.delay > 0 ? 0.25 : Math.min(1, st.timer / st.duration);
+        const swell = 1 + progress * 0.14;
+        const drawSize = cellSize * swell;
+        const offset = (cellSize - drawSize) * 0.5;
+        const sx = innerX + st.c * step + offset;
+        const sy = innerY + st.r * step + offset;
+        const unitCell = [{ r: 0, c: 0, boardR: st.r, boardC: st.c }];
+        const unitLoop = [[{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }]];
+
+        this._drawFused3DCrystalCluster(
+          ctx,
+          unitCell,
+          unitLoop,
+          sx,
+          sy,
+          drawSize,
+          0,
+          st.colorIndex,
+          progress * 5,
+          blockZDepth,
+          1.0,
+          progress,
+          1.0,
+          emitters,
+          theme
+        );
+      }
+
+      // 9. Cleared-Line Plasma Light Ribbons & Shockwave Rings
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < this.ribbons.length; i++) {
+        const rb = this.ribbons[i];
+        const t = rb.life / rb.maxLife;
+        const alpha = Math.pow(1 - t, 1.5) * 0.65;
+        const [er, eg, eb] = CONFIG.JEWEL_COLORS[rb.colorIndex].emission;
+        this._roundRectPath(ctx, rb.x, rb.y, rb.w, rb.h, slotRadius);
+        ctx.fillStyle = `rgba(${er}, ${eg}, ${eb}, ${alpha * 0.45})`;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(255, 248, 225, ${alpha})`;
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < this.shockwaves.length; i++) {
+        const sw = this.shockwaves[i];
+        const t = sw.life / sw.maxLife;
+        const alpha = (1 - t) * 0.65;
+        const [er, eg, eb] = CONFIG.JEWEL_COLORS[sw.colorIndex].emission;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.lineWidth = Math.max(1.5, (1 - t) * 5);
+        ctx.strokeStyle = `rgba(${er}, ${eg}, ${eb}, ${alpha})`;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 10. 3-Piece Tray Dock & Idle Pieces
+      this._roundRectPath(ctx, trayX, trayY, trayW, trayH, Math.max(16, trayH * 0.16));
+      ctx.fillStyle = theme.trayBg;
+      ctx.fill();
+      ctx.lineWidth = 1.25;
+      ctx.strokeStyle = theme.trayBorder;
+      ctx.stroke();
+
+      for (let i = 0; i < CONFIG.TRAY_COUNT; i++) {
+        const piece = this.tray[i];
+        if (!piece) continue;
+        if (this.drag.active && this.drag.slotIndex === i) continue;
+
+        const maxFitScale = Math.min(
+          CONFIG.TRAY_SCALE,
+          (trayW / 3.4) / (Math.max(piece.cols, piece.rows) * cellSize)
+        );
+        const scale = maxFitScale * piece.spawnScale;
+
+        this._renderPieceCluster(
+          ctx,
+          piece,
+          piece.x,
+          piece.y,
+          scale,
+          piece.rotAnimAngle,
+          false,
+          theme
+        );
+      }
+
+      // 11. 6-Facet Beveled Crystal Shards & Luminous Embers
+      ctx.save();
+      for (let i = 0; i < this.shards.length; i++) {
+        const sh = this.shards[i];
+        const t = sh.life / sh.maxLife;
+        const alpha = Math.max(0, 1 - t * t);
+        const jewel = CONFIG.JEWEL_COLORS[sh.colorIndex];
+        const [ar, ag, ab] = jewel.albedo;
+        const [cr, cg, cb] = jewel.core;
+        const s = sh.size * (1 - t * 0.35);
+
+        ctx.save();
+        ctx.translate(sh.x, sh.y);
+        ctx.rotate(sh.rot);
+        ctx.globalAlpha = alpha;
+
+        ctx.beginPath();
+        ctx.moveTo(0, -s);
+        ctx.lineTo(s * 0.85, -s * 0.25);
+        ctx.lineTo(s * 0.55, s * 0.85);
+        ctx.lineTo(-s * 0.65, s * 0.7);
+        ctx.lineTo(-s * 0.85, -s * 0.3);
+        ctx.closePath();
+        ctx.fillStyle = `rgb(${ar},${ag},${ab})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -s * 0.55);
+        ctx.lineTo(s * 0.45, -s * 0.1);
+        ctx.lineTo(0, s * 0.45);
+        ctx.lineTo(-s * 0.45, -s * 0.1);
+        ctx.closePath();
+        ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < this.embers.length; i++) {
+        const em = this.embers[i];
+        const t = em.life / em.maxLife;
+        const alpha = (1 - t) * 0.9;
+        const [er, eg, eb] = CONFIG.JEWEL_COLORS[em.colorIndex].emission;
+        ctx.fillStyle = `rgba(${er}, ${eg}, ${eb}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(em.x, em.y, em.size * (1 - t * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 12. Volumetric Golden God-Ray Shaft & Floating Air Motes
+      this._renderVolumetricGodRays(ctx, W, H, theme);
+
+      // 13. Actively Dragged 3D Piece
+      if (this.drag.active) {
+        const piece = this.tray[this.drag.slotIndex];
+        if (piece) {
+          this._renderPieceCluster(
+            ctx,
+            piece,
+            piece.x,
+            piece.y,
+            this.drag.scale,
+            this.drag.tiltAngle,
+            true,
+            theme
+          );
+        }
+      }
+
+      // 14. World-Space Floating Callouts
+      for (let i = 0; i < this.callouts.length; i++) {
+        const co = this.callouts[i];
+        const t = co.life / co.maxLife;
+        const alpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
+
+        ctx.save();
+        ctx.translate(co.x, co.y);
+        ctx.scale(co.scale, co.scale);
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.font = '900 21px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(5, 8, 16, 0.85)';
+        ctx.strokeText(co.text, 0, 0);
+        ctx.fillStyle = co.color;
+        ctx.fillText(co.text, 0, 0);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    _renderPieceCluster(ctx, piece, centerX, centerY, scale, angle, isDragging, theme) {
+      const { cellSize, cellGap } = this.layout;
+      const tileSize = cellSize * scale;
+      const gapSize = cellGap * scale;
+      const step = tileSize + gapSize;
+
+      const totalW = piece.cols * tileSize + (piece.cols - 1) * gapSize;
+      const totalH = piece.rows * tileSize + (piece.rows - 1) * gapSize;
+
+      const zBase = isDragging ? this.drag.zLift : 0;
+      const zDepth =
+        tileSize *
+        (isDragging ? CONFIG.PERSPECTIVE.BLOCK_Z_DEPTH_RATIO : CONFIG.PERSPECTIVE.TRAY_Z_DEPTH_RATIO);
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      if (Math.abs(angle) > 0.0005) {
+        ctx.rotate(angle);
+      }
+
+      const startX = -totalW * 0.5;
+      const startY = -totalH * 0.5;
+      const placeGlow = isDragging ? 0.38 : 0.08;
+      const jewel = CONFIG.JEWEL_COLORS[piece.colorIndex];
+
+      if (!jewel.fused) {
+        const unitLoop = [[{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }]];
+        for (let r = 0; r < piece.rows; r++) {
+          for (let c = 0; c < piece.cols; c++) {
+            if (!piece.matrix[r][c]) continue;
+            this._drawFused3DCrystalCluster(
+              ctx,
+              [{ r: 0, c: 0 }],
+              unitLoop,
+              startX + c * step,
+              startY + r * step,
+              tileSize,
+              gapSize,
+              piece.colorIndex,
+              zBase,
+              zDepth,
+              placeGlow,
+              0,
+              isDragging ? 0.45 : 0,
+              null,
+              theme
+            );
+          }
+        }
+      } else {
+        this._drawFused3DCrystalCluster(
+          ctx,
+          piece.cells,
+          piece.boundaryLoops,
+          startX,
+          startY,
+          tileSize,
+          gapSize,
+          piece.colorIndex,
+          zBase,
+          zDepth,
+          placeGlow,
+          0,
+          isDragging ? 0.45 : 0,
+          null,
+          theme
+        );
+      }
+
+      if (this.state === 'NO_MOVES_BEAT') {
+        const pulse = 0.5 + 0.5 * Math.sin(this.elapsedTime * 16);
+        const topX = startX + zDepth * CONFIG.PERSPECTIVE.PROJ_DX;
+        const topY = startY + zDepth * CONFIG.PERSPECTIVE.PROJ_DY;
+        ctx.beginPath();
+        for (let l = 0; l < piece.boundaryLoops.length; l++) {
+          this._traceRoundedPolygonLoop(
+            ctx,
+            piece.boundaryLoops[l],
+            topX,
+            topY,
+            step,
+            tileSize,
+            gapSize,
+            tileSize * CONFIG.LIGHTING.CORNER_RADIUS_RATIO
+          );
+        }
+        ctx.fillStyle = `rgba(244, 63, 94, ${0.42 * pulse})`;
+        ctx.fill();
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = `rgba(253, 164, 175, ${0.88 * pulse})`;
+        ctx.stroke();
+      }
+
+      if (!isDragging && this.settings.tapToRotate && this.state === 'PLAYING') {
+        const badgeR = 8;
+        const bx = totalW * 0.5 + 2;
+        const by = -totalH * 0.5 - 2;
+        ctx.beginPath();
+        ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(bx, by, 4, -Math.PI * 0.6, Math.PI * 0.8);
+        ctx.strokeStyle = '#7dd3fc';
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    window.__blockBlastApp = new BlockBlastGame();
+  });
+})();
+</script>
+</body>
+</html>
